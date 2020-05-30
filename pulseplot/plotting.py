@@ -5,10 +5,20 @@ Utilities for making plots
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.projections import register_projection
-from parse import parse_multiline, parse_single
+from matplotlib.patches import Polygon
+from .parse import (
+    parse_multiline,
+    parse_single,
+    collect_phase_params,
+    collect_pulse_params,
+    collect_pulse_timings,
+    collect_text_params,
+    phasetext,
+    text_wrapper
+)
 
 
-def pulseplot(*args, **kwargs):
+def pplot(*args, **kwargs):
     """
     Wrapper around matplotlib.pyplot
 
@@ -25,15 +35,17 @@ def pulseplot(*args, **kwargs):
     return fig, ax
 
 
+def shaped_pulse(start, length, shape=None, spacing=None, npoints=100):
+    """
+    Generates a shaped pulse in multiple ways
 
-def shaped_pulse(start, length, shape=None, npoints=100):
-
-    x = np.linspace(start, start+length, npoints)
+    """
+    x = np.linspace(start + spacing, start + length - spacing, npoints)
 
     if shape is None:
-        y = lambda x: 1 + 0.0*x
+        y = 1.0 + 0.0 * x
 
-    elif is callable(func):
+    elif callable(shape):
         y = shape(x)
 
     elif isinstance(shape, (list, tuple)):
@@ -44,56 +56,13 @@ def shaped_pulse(start, length, shape=None, npoints=100):
 
     elif isinstance(shape, np.ndarray):
         if shape.shape[-1] == x.shape[-1]:
+            y = shape
         else:
             raise ValueError("the given shape is incompatible with the time array")
 
-            
+    return x, y
 
-def text_wrapper(self, **kwargs):
-    """
-    Wrapper around the text command
 
-    """
-    if ("x" not in kwargs) or ("y" not in kwargs):
-        raise ValueError("Position for the text is not understood")
-    else:
-        kwargs["s"] = text
-
-    if "dx" in kwargs:
-        x += kwargs["dx"]
-        kwargs.pop("dx")
-    if "dy" in kwargs:
-        y += kwargs["dy"]
-        kwargs.pop["dy"]
-
-    if ("ha" not in kwargs) and ("horizontalalignemnt" not in kwargs):
-        kwargs["ha"] = "center"
-    if ("va" not in kwargs) and ("verticalalignment" not in kwargs):
-        kwargs["va"] = "center"
-
-    return kwargs
-    
-
-def phasetext(self, text=None, **kwargs):
-    """
-    Annotate a phase 
-
-    """
-    if text is None:
-        text = ""
-    else:
-        text = str(text)
-
-    if text.startswith("_"):
-        text = text[1:]
-    else:
-        text = r"$\phi_{" + text + "}$"
-
-    kwargs["s"] = text
-
-    return text_wrapper(**kwargs)
-
-        
 class PulseProgram(plt.Axes):
     """
     A class that defines convinience functions for
@@ -102,28 +71,25 @@ class PulseProgram(plt.Axes):
 
     Usage
     -----
-    
-    >>> from pulseplot import pulseplot 
-    >>> fig, ax = pulseplot()
-    >>> ax.pulse("p1 pl1 ph1 :1")
+    >>> from pulseplot import pplot 
+    >>> fig, ax = pplot()
+    >>> ax.pulse("p1 pl1 ph1 ch1")
     >>> ax.delay(2)
-    >>> ax.pulse("p2 pl1 ph2 :1")
-    >>> ax.delay(2)
-    >>> ax.fid(time=4, channel=1, amp=0.2, phase=2)
-    >>> plt.show()
+    >>> ax.pulse("p2 pl1 ph2 ch1")
+    >>> ax.delay(1)
 
     """
     name = "PulseProgram"
     channels = []
     time = 0.0
     params = {}
-    elements = []
+    spacing = 0.0
 
     def reset(self):
         """
         Removes all channels and resets the time to zero
 
-        """ 
+        """
         self.channels = []
         self.time = 0.0
 
@@ -138,173 +104,132 @@ class PulseProgram(plt.Axes):
             else:
                 super().plot(limits, [i, i], color=color, **kwargs)
 
-    def pulseseq(self, instruction, **kwargs):
+    def pseq(self, instruction, **kwargs):
+        """
+        Main way in which 
+        
+        """
         seq = parse_multiline(instruction, self.params)
-        start = self.time
+        
         for line in seq:
-            time_tracker = []
-            
-            for sim in line:
-                if sim["type"] == "pulse":
-                    self.pulse(**sim, **kwargs)
+            arguments = {}
+            keys = line.keys()
 
-                elif sim["type"] == "delay":
-                    self.delay(**sim, **kwargs)
+            if "pulse" in keys:
+                arguments = {**line["pulse"], **arguments}
 
-                time_tracker.append(self.time)
-                self.time = start
+                if "phase" in keys:
+                    arguments = {**line["phase"], **arguments}
 
-            elapsed = max(time_tracker)
-            self.time = start + elapsed
+                if "text" in keys:
+                    arguments = {**line["text"], **arguments}
 
+                arguments = {**arguments, **kwargs}
+                self.pulse(**arguments)
+
+            elif "delay" in keys:
+                arguments = {**line["delay"], **arguments}
+                
+                if "text" in keys:
+                    arguments = {**line["text"], **arguments}
+
+                arguments = {**arguments, **kwargs}
+                self.delay(**arguments)
 
     def pulse(
         self,
-        parse=None,
-        plen=0.2,
-        power=0.5,
-        channel=0,
+        plen=0.1,
+        power=1.0,
         shape=None,
-        wait=False,
-        centered=False,
-        keep_centered=True,
-        points=100,
-        start_time=None,
+        channel=0,
+        npoints=100,
         truncate=True,
-        fill=None,
-        phase=None,
-        phase_params={},
-        text=None,
-        text_params={},
+        start_time=None,
+        pulse_params=None,
+        pulse_timing=None,
+        phase_params=None,
+        text_params=None,
         _type="pulse",
         **kwargs,
     ):
+        """
+        Adds a pulse to the plot
 
-        if isinstance(parse, str):
-            super().pulseseq(parse, **kwargs)
-
+        """
         assert _type == "pulse"
 
-        default_fill = {
-            "edgecolor": "black",
-            "facecolor": "white",
-            "alpha": 1.0,
-        }
+        # collect parameters in appropriate dictionaries
+        phase_params, kwargs = collect_phase_params(phase_params, kwargs)
+        text_params, kwargs = collect_text_params(text_params, kwargs)
+        pulse_timing, kwargs = collect_pulse_timings(pulse_timing, kwargs)
+        pulse_params, kwargs = collect_pulse_params(pulse_params, kwargs, truncate=truncate)
 
+        # pass all remaining parameters to pulse paramaters
+        pulse_params = {**pulse_params, **kwargs}
 
-        if fill is None:
-            fill = default_fill
-        else:
-            fill = {**default_fill, **fill}
-
-
-        # on which channel
         if channel not in self.channels:
             self.channels.append(channel)
 
-        # timing
         if start_time is None:
-            if centered:
-                start_time = self.time - plen / 2
-            else:
-                start_time = self.time
-
-        end_time = start_time + plen
-
-        # adjust RF for channel
-        power += channel
-
-        # make an xscale for plotting the shape
-        xscale = np.linspace(start_time, end_time, points)
-
-        # if square pulse
-        if shape is None:
-            shape = power * np.ones(points)
-
-        # an arbitrary shape given by a 1D function
-        elif callable(shape):
-            shape = shape(xscale - start_time)
-            shape = power * shape + channel
+            t0 = self.time
         else:
-            try:
-                # given shape
-                xscale = np.linspace(start_time, end_time, shape.shape[-1])
-            except:
-                try:
-                    xscale = np.linspace(start_time, end_time, len(shape))
-                except:
-                    raise TypeError("Shape not understood")
+            t0 = start_time
 
-        # plot the shape
-        super().plot(xscale, shape, color=fill["edgecolor"], **kwargs)
+        if pulse_timing["centered"]:
+            t0 -= plen / 2
+            if pulse_timing["keep_centered"]:
+                t1 = t0
+            else:
+                t1 = t0 + plen / 2
+        else:
+            if pulse_timing["wait"]:
+                t1 = t0
+            else:
+                t1 = t0 + plen
 
-        # shape fill
-        if len(fill):
-            super().fill_between(
-                xscale, shape, channel * np.ones(shape.shape[-1]), 
-                **{**fill, **{"edgecolor": "none"}}
-            )
+        self.time = t1
 
-        # draw vertical lines down to the channel
-        if truncate:
-            super().vlines(
-                start_time, channel, shape[0], color=fill["edgecolor"], **kwargs
-            )
-            super().vlines(
-                end_time, channel, shape[-1], color=fill["edgecolor"], **kwargs
-            )
+        xscale, shape = shaped_pulse(
+            start=t0, length=plen, shape=shape, spacing=self.spacing, npoints=npoints,
+        )
 
-        # move to the end time
-        if not wait:
-            self.time = end_time
-        if centered and keep_centered:
-            self.time = start_time + plen / 2
+        shape *= power
 
-        # phase text
-        if phase is not None:
-            options = phase_params.keys()
-            pos = {}
+        if not truncate:
+            super().plot(xscale, shape + channel, **kwargs)
 
-            if "x" not in options:
-                pos["x"] = start_time + plen / 2
+        else:
+            vertices = [[xscale[0], channel]]
+            for v in [[i, j + channel] for i, j in zip(xscale, shape)]:
+                vertices.append(v)
+            vertices.append([xscale[-1], channel])
 
-            if "y" not in options:
-                pos["y"] = shape[int(len(shape)//2)] + 0.1
+            pulse_patch = Polygon(vertices, **pulse_params,)
+            super().add_patch(pulse_patch)
 
-            if "s" not in options:
-                if isinstance(phase, str):
-                    if phase.startswith("_"):
-                        pos["s"] = phase[1:]
-                    else:
-                        pos["s"] = f"$\mathrm{{\phi}}_{{{phase}}}$"
-                else:
-                    pos["s"] = f"$\mathrm{{\phi}}_{{{phase}}}$"
+        if phase_params["phase"] is not None:
+            x = t0 + plen / 2 
+            y = shape[len(shape) // 2] + channel + 0.2
+            phase_params["x"] = x
+            phase_params["y"] = y
+            phase_params["phase"] = phasetext(phase_params["phase"])
+            phase_params = text_wrapper(**phase_params)
+            super().text(**phase_params)
 
-            if "horizontalalignment" not in options:
-                pos["horizontalalignment"] = "center"
+        if text_params["text"] is not None:
+            x = t0 + plen / 2 
+            y = shape[len(shape) // 2] / 2 + channel 
+            text_params["x"] = x
+            text_params["y"] = y
+            text_params = text_wrapper(**text_params)
+            super().text(**text_params)
 
-            if "verticalalignment" not in options:
-                pos["verticalalignment"] = "center"
-
-            super().text(**pos, **phase_params)
-
-        # arbitrary text annotation
-        if text is not None:
-            pos = {}
-            options = text_params.keys()
-            if "x" not in options:
-                pos["x"] = start_time + plen / 2
-            if "y" not in options:
-                pos["y"] = shape[int(len(shape)//2)] / 2 + channel / 2
-            if "horizontalalignment" not in options:
-                pos["horizontalalignment"] = "center"
-            if "verticalalignment" not in options:
-                pos["verticalalignment"] = "center"
-            pos["s"] = text
-            super().text(**pos, **text_params)
 
     def delay(self, time, type="delay", channel=None, text=None, text_params={}):
+        """
+        Adds a delay to the axes
 
+        """
         assert type == "delay"
 
         if channel is not None:
