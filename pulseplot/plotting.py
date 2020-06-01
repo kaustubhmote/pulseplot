@@ -159,9 +159,9 @@ class PulseProgram(plt.Axes):
         assert _type == "pulse"
 
         # collect parameters in appropriate dictionaries
+        pulse_timing, kwargs = collect_pulse_timings(pulse_timing, kwargs)
         phase_params, kwargs = collect_phase_params(phase_params, kwargs)
         text_params, kwargs = collect_text_params(text_params, kwargs)
-        pulse_timing, kwargs = collect_pulse_timings(pulse_timing, kwargs)
         pulse_params, kwargs = collect_pulse_params(pulse_params, kwargs, truncate=truncate)
 
         # pass all remaining parameters to pulse paramaters
@@ -221,36 +221,28 @@ class PulseProgram(plt.Axes):
             y = shape[len(shape) // 2] / 2 + channel 
             text_params["x"] = x
             text_params["y"] = y
+            text_params.pop("channel")
             text_params = text_wrapper(**text_params)
             super().text(**text_params)
 
 
-    def delay(self, time, type="delay", channel=None, text=None, text_params={}):
+    def delay(self, time, _type="delay", text_params=None, **kwargs):
         """
         Adds a delay to the axes
 
         """
-        assert type == "delay"
+        assert _type == "delay"
 
-        if channel is not None:
-            if "channel" not in text_params.keys():
-                text_params["channel"] = channel
+        text_params, kwargs = collect_text_params(text_params, kwargs)
 
-        if text is not None:
-            options = text_params.keys()
-            pos = {}
-            if "x" not in options:
-                pos["x"] = self.time + time / 2
-            if "y" not in options:
-                if "channel" not in options:
-                    pos["y"] = self.channels[0] + 0.1
-                else:
-                    pos["y"] = text_params["channel"] + 0.1
-                    text_params.pop("channel")
-            if "horizontalalignment" not in options:
-                pos["horizontalalignment"] = "center"
-            pos["s"] = text
-            super().text(**pos, **text_params)
+        if text_params["text"] is not None:
+            x = self.time + time / 2 
+            y = text_params["channel"] + 0.1 
+            text_params.pop("channel")
+            text_params["x"] = x
+            text_params["y"] = y
+            text_params = text_wrapper(**text_params)
+            super().text(**text_params, **kwargs)
 
         self.time += time
 

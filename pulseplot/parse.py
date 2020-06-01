@@ -33,7 +33,7 @@ TYPES = {
 }
 
 
-PATTERN = r"(p[^lh ]+)?(pl[^ ]+)?(ph[^p ]+)?(ch[^ ]+)?(sp[^ ]+)?(w)?(c)?(kc)?(fc[^ ]+)?(ec[^ ]+)?(al[^ ]+)?(tx[^ ]+)?(d[^ ]+)?(tr)?(np[0-9]+)?(tdx[^ ]+)?(tdy[^ ]+)?(phpdx[^ ]+)?(phpdy[^ ]+)?"
+PATTERN = r"(p[^lh ]+)?(pl[^ ]+)?(ph[^p ]+)?(ch[^ ]+)?(sp[^ ]+)?(w)?(c[^h])?(kc)?(fc[^ ]+)?(ec[^ ]+)?(al[^ ]+)?(tx[^ ]+)?(d[^ ]+)?(tr)?(np[0-9]+)?(tdx[^ ]+)?(tdy[^ ]+)?(phpdx[^ ]+)?(phpdy[^ ]+)?"
 
 
 def collect(type_, params, extra_params):
@@ -120,6 +120,7 @@ def parse_base(instructions, params=None):
         if arg:
             try:
                 value = params[arg]
+                userparams[name] = type_(value)
             except KeyError:
                 if arg == k:
                     userparams[name] = True
@@ -259,6 +260,7 @@ def collect_text_params(text_params, kwargs):
         "text": None,
         "text_dx": 0.0,
         "text_dy": 0.0,
+        "channel": None,
     }
 
     if text_params is None:
