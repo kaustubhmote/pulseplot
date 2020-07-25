@@ -21,6 +21,8 @@ from .parse import (
 def pplot(*args, **kwargs):
     """
     Wrapper around matplotlib.pyplot
+    Automatically incorporates the PulseProgram projection
+    in subplot keywords
 
     """
     register_projection(PulseProgram)
@@ -59,6 +61,9 @@ def shaped_pulse(start, length, shape=None, spacing=None, npoints=100):
             y = shape
         else:
             raise ValueError("the given shape is incompatible with the time array")
+
+    else:
+        raise ValueError("Shape not understood")
 
     return x, y
 
@@ -252,7 +257,7 @@ class PulseProgram(plt.Axes):
             plen=time,
             power=1,
             channel=channel,
-            shape=lambda x: amp * np.exp(1j * frequency * x - decay * x).real + shift,
+            shape=lambda x: amp * np.exp(1j * frequency * (x-x[0]) - decay * (x-x[0])).real + shift,
             truncate=False,
             **kwargs,
         )
