@@ -14,8 +14,17 @@ from .parse import (
     collect_pulse_timings,
     collect_text_params,
     phasetext,
-    text_wrapper
+    text_wrapper,
 )
+
+shapelist = {
+    "linup": lambda x: x + 1,
+    "lindn": lambda x: -x + 2,
+    "lin": lambda x: x + 1,
+    "gauss": lambda x: np.exp(-((x - 0.5) ** 2) / 0.05),
+    "adup": lambda x: 0.3 * np.sinh((x - 0.5) / 0.4) + 1,
+    "addn": lambda x: (0.3 * np.sinh((x - 0.5) / 0.4) + 1)[::-1],
+}
 
 
 def pplot(*args, **kwargs):
@@ -42,10 +51,18 @@ def shaped_pulse(start, length, shape=None, spacing=None, npoints=100):
     Generates a shaped pulse in multiple ways
 
     """
-    x = np.linspace(start + spacing, start + length - spacing, npoints)
+    x = np.linspace(spacing, length - spacing, npoints)
 
     if shape is None:
         y = 1.0 + 0.0 * x
+
+    elif isinstance(shape, str):
+        try:
+            y = shapelist[shape](x)
+        except KeyError as e:
+            raise KeyError(
+                f"{e} :: The shape {shape} does not exist in the current shapelist. Valid values are {shapelist.keys()}"
+            )
 
     elif callable(shape):
         y = shape(x)
@@ -63,7 +80,9 @@ def shaped_pulse(start, length, shape=None, spacing=None, npoints=100):
             raise ValueError("the given shape is incompatible with the time array")
 
     else:
-        raise ValueError("Shape not understood")
+        raise ValueError(f"Shape '{shape}' not understood")
+
+    x = x + start
 
     return x, y
 
@@ -84,6 +103,7 @@ class PulseProgram(plt.Axes):
     >>> ax.delay(1)
 
     """
+
     name = "PulseProgram"
     channels = []
     time = 0.0
@@ -115,7 +135,7 @@ class PulseProgram(plt.Axes):
         
         """
         seq = parse_multiline(instruction, self.params)
-        
+
         for line in seq:
             arguments = {}
             keys = line.keys()
@@ -134,7 +154,7 @@ class PulseProgram(plt.Axes):
 
             elif "delay" in keys:
                 arguments = {**line["delay"], **arguments}
-                
+
                 if "text" in keys:
                     arguments = {**line["text"], **arguments}
 
@@ -167,7 +187,9 @@ class PulseProgram(plt.Axes):
         pulse_timing, kwargs = collect_pulse_timings(pulse_timing, kwargs)
         phase_params, kwargs = collect_phase_params(phase_params, kwargs)
         text_params, kwargs = collect_text_params(text_params, kwargs)
-        pulse_params, kwargs = collect_pulse_params(pulse_params, kwargs, truncate=truncate)
+        pulse_params, kwargs = collect_pulse_params(
+            pulse_params, kwargs, truncate=truncate
+        )
 
         # pass all remaining parameters to pulse paramaters
         pulse_params = {**pulse_params, **kwargs}
@@ -213,7 +235,7 @@ class PulseProgram(plt.Axes):
             super().add_patch(pulse_patch)
 
         if phase_params["phase"] is not None:
-            x = t0 + plen / 2 
+            x = t0 + plen / 2
             y = shape[len(shape) // 2] + channel + 0.2
             phase_params["x"] = x
             phase_params["y"] = y
@@ -222,14 +244,13 @@ class PulseProgram(plt.Axes):
             super().text(**phase_params)
 
         if text_params["text"] is not None:
-            x = t0 + plen / 2 
-            y = shape[len(shape) // 2] / 2 + channel 
+            x = t0 + plen / 2
+            y = shape[len(shape) // 2] / 2 + channel
             text_params["x"] = x
             text_params["y"] = y
             text_params.pop("channel")
             text_params = text_wrapper(**text_params)
             super().text(**text_params)
-
 
     def delay(self, time, _type="delay", text_params=None, **kwargs):
         """
@@ -241,8 +262,8 @@ class PulseProgram(plt.Axes):
         text_params, kwargs = collect_text_params(text_params, kwargs)
 
         if text_params["text"] is not None:
-            x = self.time + time / 2 
-            y = text_params["channel"] + 0.1 
+            x = self.time + time / 2
+            y = text_params["channel"] + 0.1
             text_params.pop("channel")
             text_params["x"] = x
             text_params["y"] = y
@@ -257,7 +278,9 @@ class PulseProgram(plt.Axes):
             plen=time,
             power=1,
             channel=channel,
-            shape=lambda x: amp * np.exp(1j * frequency * (x-x[0]) - decay * (x-x[0])).real + shift,
+            shape=lambda x: amp
+            * np.exp(1j * frequency * (x - x[0]) - decay * (x - x[0])).real
+            + shift,
             truncate=False,
             **kwargs,
         )
