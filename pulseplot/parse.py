@@ -5,7 +5,7 @@ PARAMS = {
     "pl": ["power", float, None],
     "ph": ["phase", str, None],
     "ch": ["channel", float, None],
-    "sp": ["shape", str, None],
+    "sp": ["shape", None, None],
     "w": ["wait", None, False],
     "c": ["centered", None, False],
     "kc": ["keep_centered", None, False],
@@ -34,28 +34,6 @@ TYPES = {
 
 
 PATTERN = r"(p[^lh ]+)?(pl[^ ]+)?(ph[^p ]+)?(ch[^ ]+)?(sp[^ ]+)?(w)?(c[^h])?(kc)?(fc[^ ]+)?(ec[^ ]+)?(al[^ ]+)?(tx[^ ]+)?(d[^ ]+)?(tr)?(np[0-9]+)?(tdx[^ ]+)?(tdy[^ ]+)?(phpdx[^ ]+)?(phpdy[^ ]+)?"
-
-
-def collect(type_, params, extra_params):
-
-    funclist = {
-            "timing": collect_pulse_timing,
-            "phase": collect_phase_params,
-            "text": collect_text_params,
-            "pulse": collect_pulse_params,
-        }
-
-    if params is None:
-        pulse_timing = defaults
-        for k in defaults.keys():
-            if k in kwargs.keys():
-                pulse_timing[k] = kwargs[k]
-                kwargs.pop(k)
-
-    else:
-        pulse_timing = {**defaults, **pulse_timing}
-
-    return funclist[type_](params, extra_params)
 
 
 def sort(userparams):
@@ -116,19 +94,29 @@ def parse_base(instructions, params=None):
     for m in matches:
         arguments = [i + j for i, j in zip(arguments, m)]
 
+
     for arg, (k, (name, type_, default)) in zip(arguments, PARAMS.items()):
         if arg:
             try:
                 value = params[arg]
-                userparams[name] = type_(value)
+                if callable(type_):
+                    userparams[name] = type_(value)
+                else:
+                    userparams[name] = value
+
             except KeyError:
                 if arg == k:
                     userparams[name] = True
                 else:
                     value = arg[len(k) :]
-                    userparams[name] = type_(value)
+                    if callable(type_):
+                        userparams[name] = type_(value)
+                    else:
+                        userparams[name] = value
         else:
             userparams[name] = default
+
+
 
     return userparams
 
