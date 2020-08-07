@@ -32,7 +32,20 @@ def test_parse_single():
     seq = r"ph2 tx2 ch2"
     out = parse_single(seq)
     print(out)
+
+
+def test_shape():
+    seq = "p1 pl1 ph1 sp0 ch1"
+
+    print(parse_base(seq, {"sp0": lambda x:x**2}))
+
+    # fig, ax = pplot()
+    # ax.params = {"sp0": lambda x: x**2}
+
+    # ax.pseq(seq)
+
+
     
 
 if __name__ == "__main__":
-    test_parse_single()
+    test_shape()

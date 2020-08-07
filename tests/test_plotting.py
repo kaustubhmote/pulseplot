@@ -35,6 +35,21 @@ def test_string_input():
     fig.savefig("test_string_input.png")
 
 
+def test_all():
+
+    pseq = """
+    p0.1 pl1 ph0 ch1
+    p1 pl0.5 ph1 ch1 sp0 txCP phpdy0.1 w
+    p1 pl0.5 ph1 ch0 txCP 
+    """
+
+    fig, ax = pplot()
+    ax.params = {"sp0": lambda x: x**2 + 0.1}
+    ax.pseq(pseq, )
+    ax.set_xlim(-0.1, 3)
+    ax.set_ylim(-0.1, 3)
+    plt.show()
+
+
 if __name__ == "__main__":
-    test_string_input()
-    test_functions()
+    test_all()
