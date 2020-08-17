@@ -1,27 +1,32 @@
 import re
+from collections import namedtuple
+
+parameters = namedtuple("parameters", ["name", "type", "default", "pattern"])
 
 PARAMS = {
-    "p": ["plen", float, None],
-    "pl": ["power", float, None],
-    "ph": ["phase", str, None],
-    "ch": ["channel", float, None],
-    "sp": ["shape", None, None],
-    "w": ["wait", None, False],
-    "c": ["centered", None, False],
-    "kc": ["keep_centered", None, False],
-    "fc": ["facecolor", str, "white"],
-    "ec": ["edgecolor", str, "black"],
-    "al": ["alpha", float, 1.0],
-    "tx": ["text", str, None],
-    "d": ["time", float, None],
-    "tr": ["truncate", None, True],
-    "np": ["npoints", int, 100],
-    "tdx": ["text_dx", float, 0.0],
-    "tdy": ["text_dy", float, 0.0],
-    "phpdx": ["phtxt_dx", float, 0.0],
-    "phpdy": ["phtxt_dy", float, 0.0],
+    "p": parameters("plen", float, None, r"(p[^lh ]+)?"),
+    "pl": parameters("power", float, None, r"(pl[^ ]+)?",),
+    "ph": parameters("phase", str, None, r"(ph[^p ]+)?",),
+    "ch": parameters("channel", float, None, r"(ch[^ ]+)?",),
+    "sp": parameters("shape", None, None, r"(sp[^ ]+)?",),
+    "w": parameters("wait", None, False, r"(w)?",),
+    "c": parameters("centered", None, False, r"(c[^h])?",),
+    "kc": parameters("keep_centered", None, False, r"(kc)?",),
+    "fc": parameters("facecolor", str, "white", r"(fc[^ ]+)?",),
+    "ec": parameters("edgecolor", str, "black", r"(ec[^ ]+)?",),
+    "al": parameters("alpha", float, 1.0, r"(al[^ ]+)?",),
+    "tx": parameters("text", str, None, r"(tx[^ ]+)?",),
+    "d": parameters("time", float, None, r"(d[^ ]+)?",),
+    "tr": parameters("truncate", None, True, r"(tr)?",),
+    "np": parameters("npoints", int, 100, r"(np[0-9]+)?",),
+    "tdx": parameters("text_dx", float, 0.0, r"(tdx[^ ]+)?",),
+    "tdy": parameters("text_dy", float, 0.0, r"(tdy[^ ]+)?",),
+    "phpdx": parameters("phtxt_dx", float, 0.0, r"(phpdx[^ ]+)?",),
+    "phpdy": parameters("phtxt_dy", float, 0.0, r"(phpdy[^ ]+)?",),
 }
 
+
+PATTERN = "".join([v.pattern for v in PARAMS.values()])
 
 TYPES = {
     "pulse": ["plen", "power", "shape", "npoints", "truncate", "channel"],
@@ -31,9 +36,6 @@ TYPES = {
     "phase": ["phase", "phtxt_dx", "phtxt_dy"],
     "delay": ["time", "channel"],
 }
-
-
-PATTERN = r"(p[^lh ]+)?(pl[^ ]+)?(ph[^p ]+)?(ch[^ ]+)?(sp[^ ]+)?(w)?(c[^h])?(kc)?(fc[^ ]+)?(ec[^ ]+)?(al[^ ]+)?(tx[^ ]+)?(d[^ ]+)?(tr)?(np[0-9]+)?(tdx[^ ]+)?(tdy[^ ]+)?(phpdx[^ ]+)?(phpdy[^ ]+)?"
 
 
 def sort(userparams):
@@ -94,29 +96,26 @@ def parse_base(instructions, params=None):
     for m in matches:
         arguments = [i + j for i, j in zip(arguments, m)]
 
-
-    for arg, (k, (name, type_, default)) in zip(arguments, PARAMS.items()):
+    for arg, (k, v) in zip(arguments, PARAMS.items()):
         if arg:
             try:
                 value = params[arg]
-                if callable(type_):
-                    userparams[name] = type_(value)
+                if callable(v.type):
+                    userparams[v.name] = v.type(value)
                 else:
-                    userparams[name] = value
+                    userparams[v.name] = value
 
             except KeyError:
                 if arg == k:
-                    userparams[name] = True
+                    userparams[v.name] = True
                 else:
                     value = arg[len(k) :]
-                    if callable(type_):
-                        userparams[name] = type_(value)
+                    if callable(v.type):
+                        userparams[v.name] = v.type(value)
                     else:
-                        userparams[name] = value
+                        userparams[v.name] = value
         else:
-            userparams[name] = default
-
-
+            userparams[v.name] = v.default
 
     return userparams
 
