@@ -3,7 +3,6 @@ from pulseplot import *
 def test_parse_base_1():
     seq = r"p1 pl1 ph1 ch2"
     out = parse_base(seq)
-    print(out)
     
     for k, v in PARAMS.items():
         assert v[0] in out.keys()
@@ -28,23 +27,32 @@ def test_parse_base_2():
 
 
 def test_parse_single():
-    
     seq = r"ph2 tx2 ch2"
-    out = parse_single(seq)
-    print(out)
+    out = parse_base(seq)
+    assert out["phase"] == "2"
+    assert out["text"] == "2"
+    assert out["channel"] == 2.0
 
 
 def test_shape():
     seq = "p1 pl1 ph1 sp0 ch1"
-
-    print(parse_base(seq, {"sp0": lambda x:x**2}))
-
-    # fig, ax = pplot()
-    # ax.params = {"sp0": lambda x: x**2}
-
-    # ax.pseq(seq)
+    out = parse_base(seq, {"sp0": lambda x: x**2})
+    assert callable(out["shape"]) 
 
 
+def test_userparams():
+    seq = "pH90 plH90 ph1 sp0 chH"
+    upars = {
+            "pH90": 1,
+            "plH90": 2,
+            "sp0": lambda x: x+1,
+            "chH": 0,
+        }
+    out = parse_base(seq, params=upars)
+    assert out["plen"] == 1.0
+    assert out["power"] == 2.0
+    assert callable(out["shape"])
+    assert out["channel"] == 0.0
     
 
 if __name__ == "__main__":
