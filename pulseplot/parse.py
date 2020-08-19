@@ -38,7 +38,7 @@ TYPES = {
 }
 
 
-def sort(userparams):
+def sort_userparams(userparams):
     """
     Parses a single line
 
@@ -51,33 +51,33 @@ def sort(userparams):
     if (userparams["plen"] is not None) and (userparams["time"] is not None):
         raise ValueError("Pulses and delays cannot be mixed")
 
-    el = {}
+    sorted_params = {}
     for type_ in TYPES.keys():
         p = collect_userparams(userparams, type_)
         p["_type"] = type_
-        el[type_] = p
+        sorted_params[type_] = p
 
-    if el["pulse"]["plen"] is not None:
-        el.pop("delay")
+    if sorted_params["pulse"]["plen"] is not None:
+        sorted_params.pop("delay")
         for n in [
             "pulse_params",
             "pulse_timing",
         ]:
-            el["pulse"][n] = el[n]
-            el[n].pop("_type")
-            el.pop(n)
+            sorted_params["pulse"][n] = sorted_params[n]
+            sorted_params[n].pop("_type")
+            sorted_params.pop(n)
 
     else:
         for n in ["pulse_params", "pulse_timing", "pulse"]:
-            el.pop(n)
+            sorted_params.pop(n)
 
-    if el["text"]["text"] is None:
-        el.pop("text")
+    if sorted_params["text"]["text"] is None:
+        sorted_params.pop("text")
 
-    if el["phase"]["phase"] is None:
-        el.pop("phase")
+    if sorted_params["phase"]["phase"] is None:
+        sorted_params.pop("phase")
 
-    return el
+    return sorted_params
 
 
 def parse_base(instructions, params=None):
@@ -128,7 +128,7 @@ def parse_single(string, params=None):
     """
     p = parse_base(string, params)
 
-    return sort(p)
+    return sort_userparams(p)
 
 
 def parse_multiline(string, params=None):
