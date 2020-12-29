@@ -5,26 +5,7 @@ Utilities for making plots
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.projections import register_projection
-from matplotlib.patches import Polygon
-from .parse import (
-    parse_multiline,
-    parse_single,
-    collect_phase_params,
-    collect_pulse_params,
-    collect_pulse_timings,
-    collect_text_params,
-    phasetext,
-    text_wrapper,
-)
-
-shapelist = {
-    "linup": lambda x: x + 1,
-    "lindn": lambda x: -x + 2,
-    "lin": lambda x: x + 1,
-    "gauss": lambda x: np.exp(-((x - 0.5) ** 2) / 0.05),
-    "adup": lambda x: 0.3 * np.sinh((x - 0.5) / 0.4) + 1,
-    "addn": lambda x: (0.3 * np.sinh((x - 0.5) / 0.4) + 1)[::-1],
-}
+from .parse import PulseSeq, Pulse, Delay
 
 
 def pplot(*args, **kwargs):
@@ -46,47 +27,6 @@ def pplot(*args, **kwargs):
     return fig, ax
 
 
-def shaped_pulse(start, length, shape=None, spacing=None, npoints=100):
-    """
-    Generates a shaped pulse in multiple ways
-
-    """
-    x = np.linspace(spacing, length - spacing, npoints)
-
-    if shape is None:
-        y = 1.0 + 0.0 * x
-
-    elif isinstance(shape, str):
-        try:
-            y = shapelist[shape](x)
-        except KeyError as e:
-            raise KeyError(
-                f"{e} :: The shape {shape} does not exist in the current shapelist. Valid values are {shapelist.keys()}"
-            )
-
-    elif callable(shape):
-        y = shape(x)
-
-    elif isinstance(shape, (list, tuple)):
-        if len(shape) == x.shape[-1]:
-            y = shape
-        else:
-            raise ValueError("the given shape is incompatible with the time array")
-
-    elif isinstance(shape, np.ndarray):
-        if shape.shape[-1] == x.shape[-1]:
-            y = shape
-        else:
-            raise ValueError("the given shape is incompatible with the time array")
-
-    else:
-        raise ValueError(f"Shape '{shape}' not understood")
-
-    x = x + start
-
-    return x, y
-
-
 class PulseProgram(plt.Axes):
     """
     A class that defines convinience functions for
@@ -97,10 +37,16 @@ class PulseProgram(plt.Axes):
     -----
     >>> from pulseplot import pplot 
     >>> fig, ax = pplot()
-    >>> ax.pulse("p1 pl1 ph1 ch1")
+    >>> ax.params["p1"] = 0.5
+    >>> ax.pulse("p1 pl1 ph1 f1")
     >>> ax.delay(2)
-    >>> ax.pulse("p2 pl1 ph2 ch1")
-    >>> ax.delay(1)
+    >>> ax.pulse("p2 pl1 ph2 f1 w")
+    >>> ax.pulse("p2 pl1 ph2 f2")
+    >>> ax.delay(2)
+    >>> ax.pulse("p1 pl1 ph2 f1 w")
+    >>> ax.pulse("p1 pl1 ph2 f2 w")
+    >>> ax.fid("p1 pl1 phrec f2")
+
 
     """
 
@@ -108,7 +54,64 @@ class PulseProgram(plt.Axes):
     channels = []
     time = 0.0
     params = {}
-    spacing = 0.0
+    elements = []
+
+    def pulse(self, *args, **kwargs):
+
+        p = Pulse(*args, **kwargs, external_params=self.params)
+
+        if p.defer_start_time:
+            p.start_time = self.time
+            self.time = p.end_time()
+
+        p.render(super())
+
+        try:
+            super().text(**p.label_params())
+        except:
+            pass
+
+        try:
+            super().text(**p.phase_params())
+        except:
+            pass
+
+        self.elements.append(p)
+
+    def delay(self, *args, **kwargs):
+
+        if isinstance(args[0], Delay):
+
+            if len(args) > 1:
+                raise ValueError("No args allowed if a Delay object is supplied")
+
+            else:
+                d = Delay(args[0].args, **kwargs, external_params=self.params)
+
+        else:
+            d = Delay(*args, **kwargs, external_params=self.params)
+
+        if d.defer_start_time:
+            self.time = d.end_time()
+
+        try:
+            super().text(d.label_params())
+        except:
+            pass
+
+        self.elements.append(d)
+
+    def fid(self, *args, **kwargs):
+
+        self.pulse(
+            *args, **kwargs, shape="fid", truncate_off=True, open=True, facecolor="none"
+        )
+
+    def add_elements(self, arg):
+
+        if isinstance(arg, str):
+            psq = PulseSeq(arg, external_params=self.params)
+            self.elements += psq.elements
 
     def reset(self):
         """
@@ -117,6 +120,7 @@ class PulseProgram(plt.Axes):
         """
         self.channels = []
         self.time = 0.0
+        self.elements = []
 
     def draw_channels(self, limits=None, color="k", **kwargs):
         """
@@ -134,153 +138,3 @@ class PulseProgram(plt.Axes):
         Main way in which 
         
         """
-        seq = parse_multiline(instruction, self.params)
-
-        for line in seq:
-            arguments = {}
-            keys = line.keys()
-
-            if "pulse" in keys:
-                arguments = {**line["pulse"], **arguments}
-
-                if "phase" in keys:
-                    arguments = {**line["phase"], **arguments}
-
-                if "text" in keys:
-                    arguments = {**line["text"], **arguments}
-
-                arguments = {**arguments, **kwargs}
-                self.pulse(**arguments)
-
-            elif "delay" in keys:
-                arguments = {**line["delay"], **arguments}
-
-                if "text" in keys:
-                    arguments = {**line["text"], **arguments}
-
-                arguments = {**arguments, **kwargs}
-                self.delay(**arguments)
-
-    def pulse(
-        self,
-        plen=0.1,
-        power=1.0,
-        shape=None,
-        channel=0,
-        npoints=100,
-        truncate=True,
-        start_time=None,
-        pulse_params=None,
-        pulse_timing=None,
-        phase_params=None,
-        text_params=None,
-        _type="pulse",
-        **kwargs,
-    ):
-        """
-        Adds a pulse to the plot
-
-        """
-        assert _type == "pulse"
-
-        # collect parameters in appropriate dictionaries
-        pulse_timing, kwargs = collect_pulse_timings(pulse_timing, kwargs)
-        phase_params, kwargs = collect_phase_params(phase_params, kwargs)
-        text_params, kwargs = collect_text_params(text_params, kwargs)
-        pulse_params, kwargs = collect_pulse_params(
-            pulse_params, kwargs, truncate=truncate
-        )
-
-        # pass all remaining parameters to pulse paramaters
-        pulse_params = {**pulse_params, **kwargs}
-
-        if channel not in self.channels:
-            self.channels.append(channel)
-
-        if start_time is None:
-            t0 = self.time
-        else:
-            t0 = start_time
-
-        if pulse_timing["centered"]:
-            t0 -= plen / 2
-            if pulse_timing["keep_centered"]:
-                t1 = t0
-            else:
-                t1 = t0 + plen / 2
-        else:
-            if pulse_timing["wait"]:
-                t1 = t0
-            else:
-                t1 = t0 + plen
-
-        self.time = t1
-
-        xscale, shape = shaped_pulse(
-            start=t0, length=plen, shape=shape, spacing=self.spacing, npoints=npoints,
-        )
-
-        shape *= power
-
-        if not truncate:
-            super().plot(xscale, shape + channel, **kwargs)
-
-        else:
-            vertices = [[xscale[0], channel]]
-            for v in [[i, j + channel] for i, j in zip(xscale, shape)]:
-                vertices.append(v)
-            vertices.append([xscale[-1], channel])
-
-            pulse_patch = Polygon(vertices, **pulse_params,)
-            super().add_patch(pulse_patch)
-
-        if phase_params["phase"] is not None:
-            x = t0 + plen / 2
-            y = shape[len(shape) // 2] + channel + 0.2
-            phase_params["x"] = x
-            phase_params["y"] = y
-            phase_params["phase"] = phasetext(phase_params["phase"])
-            phase_params = text_wrapper(**phase_params)
-            super().text(**phase_params)
-
-        if text_params["text"] is not None:
-            x = t0 + plen / 2
-            y = shape[len(shape) // 2] / 2 + channel
-            text_params["x"] = x
-            text_params["y"] = y
-            text_params.pop("channel")
-            text_params = text_wrapper(**text_params)
-            super().text(**text_params)
-
-    def delay(self, time, _type="delay", text_params=None, **kwargs):
-        """
-        Adds a delay to the axes
-
-        """
-        assert _type == "delay"
-
-        text_params, kwargs = collect_text_params(text_params, kwargs)
-
-        if text_params["text"] is not None:
-            x = self.time + time / 2
-            y = text_params["channel"] + 0.1
-            text_params.pop("channel")
-            text_params["x"] = x
-            text_params["y"] = y
-            text_params = text_wrapper(**text_params)
-            super().text(**text_params, **kwargs)
-
-        self.time += time
-
-    def fid(self, time, channel, amp=0.2, shift=0, frequency=20, decay=1, **kwargs):
-
-        self.pulse(
-            plen=time,
-            power=1,
-            channel=channel,
-            shape=lambda x: amp
-            * np.exp(1j * frequency * (x - x[0]) - decay * (x - x[0])).real
-            + shift,
-            truncate=False,
-            **kwargs,
-        )

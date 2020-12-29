@@ -1,11 +1,11 @@
 from pulseplot.parse import Pulse, Delay, PulseSeq, parse_base, PARAMS
 
 
-test_string = r"""p1 pl1 ph1 ch2
-d1 ch1 tx$\\tau$
-d1 ch1 txTEST tdx0.1 tdy0.3
-p1 pl1 ph1 ch8 fcr ecg al0.33
-p3 pl4 ph_x
+test_string = r"""p1 pl1 ph1 f2
+d1 f1 tx$\\tau$
+d1 f1 txTEST tdx0.1 tdy0.3
+p1 pl1 ph1 f8 fcr ecg al0.33
+p3 pl4 ph_x f0
 p2.6 pl5 ph2 phpdx0.1 phpdy0.2
 """
 
@@ -26,6 +26,27 @@ def test_parse_base_1():
     assert out["phase"] == "1"
     assert out["channel"] == 2.0
     assert out["time"] is None
+
+    pX = Pulse(test_string_splitted[0])
+    assert pX.plen == 1.0
+    assert pX.power == 1.0
+    assert pX.channel == 2.0
+    assert pX.phase_params() == {
+        "x": 0.5,
+        "y": 3.1,
+        "s": "$\\phi_1$",
+        "ha": "center",
+        "va": "center",
+    }
+
+    pX * 2
+    assert pX.plen == 2.0
+
+    pX + 3
+    assert pX.plen == 5.0
+
+    pX ** 2
+    assert pX.power == 2.0
 
 
 def test_parse_base_2():
@@ -66,12 +87,12 @@ def test_shape():
 
 
 def test_userparams():
-    seq = "pH90 plH90 ph1 sp0 chH"
+    seq = "pH90 plH90 ph1 sp0 fH"
     upars = {
         "pH90": 1,
         "plH90": 2,
         "sp0": lambda x: x + 1,
-        "chH": 0,
+        "fH": 0,
     }
     out = parse_base(seq, params=upars)
     assert out["plen"] == 1.0
@@ -100,7 +121,3 @@ def test_pulse_seq():
         "ha": "center",
         "va": "center",
     }
-
-
-if __name__ == "__main__":
-    print(PulseSeq(test_string).elements[1].label_params())

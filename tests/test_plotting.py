@@ -3,53 +3,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def test_functions():
+def test_pulse_1():
     fig, ax = pplot()
-    ax.spacing = 0.015
-    ax.pulse(plen=0.1, phase=1, power=1, channel=1, hatch=r"///")
-    ax.pulse(plen=1, power=0.6, channel=1, wait=True, shape=lambda x: 0.5 + 0.2*x)
-    ax.pulse(1, 0.6, channel=0,) 
-    ax.pulse(2, 1, truncate=False, color="r", shape=lambda x: 0.25 + np.exp(1j*50*x - 2*x).real)
-    ax.set_xlim(-0.5, 4)
-    ax.set_ylim(-0.5, 2.4)
+    ax.pulse("p1 pl1 ph1 f1 fck")
+    ax.pulse("p2 pl2 ph2 f1 fcr h//")
+    ax.pulse("p1 pl1 ph_x f0 fcg h||", shape=lambda x: np.exp(-((x - 0.5) ** 2) / 0.05))
+    ax.pulse("p3 pl0.4 f1 ecr fcr al0.2", text="A long Pulse text")
+    ax.pulse(
+        "p1 pl-0.5 f1 fcb al0.5 spg",
+        text="shaded",
+        shape=lambda x: np.exp(-((x - 0.5) ** 2) / 0.05),
+    )
+    ax.pulse("p2 pl0.5 f1 spf ecr o troff", facecolor="none")
+    ax.fid("p2 pl0.5 f2 st8")
 
-    fig.savefig("test_functions.png")
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 3)
 
+    fig.savefig("test_pulse_1.png")
 
-
-def test_string_input():
-    pseq = r"""
-    p0.1 pl1 ph0 ch1
-    p1 pl0.5 ph1 ch1 txCP phpdy0.1 w
-    p1 pl0.5 ph1 ch0 txCP 
-    """
-    pars = {i: {} for i in range(3)}
-    pars[0] = {"hatch": r"///"}
-
-    fig, ax = pplot()
-    for i, j in enumerate(pseq.strip().split("\n")):
-        ax.pseq(j, **pars[i])
-
-    ax.set_xlim(-0.5, 4)
-    ax.set_ylim(-0.5, 4)
-    fig.savefig("test_string_input.png")
-
-
-def test_all():
-
-    pseq = """
-    p0.1 pl1 ph0 ch1
-    p1 pl0.5 ph1 ch1 sp0 txCP phpdy0.1 w
-    p1 pl0.5 ph1 ch0 txCP 
-    """
-
-    fig, ax = pplot()
-    ax.params = {"sp0": lambda x: x**2 + 0.1}
-    ax.pseq(pseq, )
-    ax.set_xlim(-0.1, 3)
-    ax.set_ylim(-0.1, 3)
-    plt.show()
-
-
-if __name__ == "__main__":
-    test_all()
+    assert 1 is 1

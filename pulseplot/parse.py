@@ -5,6 +5,7 @@ from collections import namedtuple
 import json
 import numpy as np
 from matplotlib.patches import Polygon
+from warnings import warn
 
 TEXT_DEFAULTS = {"ha": "center", "va": "center"}
 
@@ -12,30 +13,32 @@ PAR = namedtuple("parameters", ["name", "type", "default", "pattern", "parents"]
 
 # fmt: off
 PARAMS = {
-    "p":     PAR("plen",          float,  None,     r"(p=?[^lhdk ]+)?",   ["pulse"],),
-    "pl":    PAR("power",         float,  None,     r"(pl=?[^ ]+)?",      ["pulse"],),
-    "ph":    PAR("phase",         str,    None,     r"(ph=?[^ ]+)?",      ["pulse"],),
-    "sp":    PAR("shape",         None,   None,     r"(sp=?[^ ]+)?",      ["pulse"],),
-    "w":     PAR("wait",          None,   False,    r"(w)?",              ["pulse"],),
-    "c":     PAR("centered",      None,   False,    r"(c[^h])?",          ["pulse"],),
-    "kc":    PAR("keep_centered", None,   False,    r"(kc)?",             ["pulse"],),
-    "fc":    PAR("facecolor",     str,    "white",  r"(fc=?[^ ]+)?",      ["pulse"],),
-    "ec":    PAR("edgecolor",     str,    "black",  r"(ec=?[^ ]+)?",      ["pulse"],),
-    "al":    PAR("alpha",         float,  1.0,      r"(al=?[^ ]+)?",      ["pulse"],),
-    "h":     PAR("hatch",         str,    "",       r"(h=?[^ ]+)?",       ["pulse"],),
-    "tr":    PAR("truncate",      None,   True,     r"(tr)?",             ["pulse"],),
-    "np":    PAR("npoints",       int,    100,      r"(np=?[0-9]+)?",     ["pulse"],),
-    "pdx":   PAR("phtxt_dx",      float,  0.0,      r"(pdx=?[^ ]+)?",     ["pulse"],),
-    "pdy":   PAR("phtxt_dy",      float,  0.0,      r"(pdy=?[^ ]+)?",     ["pulse"],),
-    "pkw":   PAR("phase_kw",      None,   "{}",     r"(pkw=?{.*?})?",     ["pulse"],),
-    "d":     PAR("time",          float,  None,     r"(d=?[^ ]+)?",       ["delay"],),
-    "st":    PAR("start_time",    float,  None,     r"(st=?[^ ]+)?",      ["pulse", "delay"],),
-    "ch":    PAR("channel",       float,  None,     r"(ch=?[^ ]+)?",      ["pulse", "delay"],),
-    "tx":    PAR("text",          str,    None,     r"(tx=?[^ ]+)?",      ["pulse", "delay"],),
-    "tdx":   PAR("text_dx",       float,  0.0,      r"(tdx=?[^ ]+)?",     ["pulse", "delay"],),
-    "tdy":   PAR("text_dy",       float,  0.0,      r"(tdy=?[^ ]+)?",     ["pulse", "delay"],),
-    "tkw":   PAR("text_kw",       None,   "{}",     r"(tkw=?{.*?})?",     ["pulse", "delay"],),
-    "n":     PAR("name",          str,    "",       r"(n=?[^p ])?",       ["pulse", "delay"],),
+    "p":     PAR("plen",            float,  None,     r"(p=?[^lhdk ]+)?",   ["pulse"],),
+    "pl":    PAR("power",           float,  None,     r"(pl=?[^ ]+)?",      ["pulse"],),
+    "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",      ["pulse"],),
+    "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",      ["pulse"],),
+    "w":     PAR("wait",            bool,   False,    r"(w)?",              ["pulse"],),
+    "c":     PAR("centered",        bool,   False,    r"(c[^l])?",          ["pulse"],),
+    "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",             ["pulse"],),
+    "vc":    PAR("vertical_center", bool,   False,    r"(vc)?",             ["pulse"],),
+    "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",      ["pulse"],),
+    "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",      ["pulse"],),
+    "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",      ["pulse"],),
+    "h":     PAR("hatch",           str,    "",       r"(h=?[^ ]+)?",       ["pulse"],),
+    "tr":    PAR("truncate_off",    bool,   False,    r"(troff)?",          ["pulse"],),
+    "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",     ["pulse"],),
+    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",     ["pulse"],),
+    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",     ["pulse"],),
+    "pkw":   PAR("phase_kw",        None,   "{}",     r"(pkw=?{.*?})?",     ["pulse"],),
+    "o":     PAR("open",            bool,   False,    r"(o)?",              ["pulse"],),  
+    "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",       ["delay"],),
+    "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",      ["pulse", "delay"],),
+    "f":     PAR("channel",         float,  None,     r"(f=?[^c ]+)?",      ["pulse", "delay"],),
+    "tx":    PAR("text",            str,    None,     r"(tx=?[^ ]+)?",      ["pulse", "delay"],),
+    "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",     ["pulse", "delay"],),
+    "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",     ["pulse", "delay"],),
+    "tkw":   PAR("text_kw",         None,   "{}",     r"(tkw=?{.*?})?",     ["pulse", "delay"],),
+    "n":     PAR("name",            str,    "",       r"(n=?[^p ])?",       ["pulse", "delay"],),
 }
 # fmt: on
 
@@ -77,7 +80,7 @@ def parse_base(instructions, params=None):
 
                 # special case for Boolean params
                 if arg == param:
-                    userparams[param_info.name] = True
+                    userparams[param_info.name] = not param_info.default
 
                 else:
 
@@ -105,7 +108,9 @@ class Pulse(object):
 
     """
 
-    def __init__(self, *args, **params):
+    def __init__(
+        self, *args, external_params={}, **params,
+    ):
         """TODO: to be defined.
 
         Parameters
@@ -120,7 +125,7 @@ class Pulse(object):
         except TypeError as e:
             raise TypeError("All arguments without a keyword should be strings")
 
-        args = parse_base(self.args)
+        args = parse_base(self.args, external_params)
 
         # check that the parsig is OK, remove things that are not required
         if args["time"] is not None:
@@ -149,6 +154,8 @@ class Pulse(object):
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
+        print(self.open)
+
     def phase_params(self, **kwargs):
         """
         Generates a dictionary to be passed
@@ -166,13 +173,13 @@ class Pulse(object):
             text = fr"$\phi_{self.phase}$"
 
         xpos = self.start_time + self.plen / 2 + self.phtxt_dx
-        ypos = self.power + 0.1 + self.phtxt_dy
+        ypos = self.channel + self.power + 0.1 + self.phtxt_dy
 
         phtxtparams = {"x": xpos, "y": ypos, "s": text}
 
         return {**phtxtparams, **TEXT_DEFAULTS, **self.phase_kw, **kwargs}
 
-    def label_params(self, **ktextwargs):
+    def label_params(self, **kwargs):
         """
         Generates a dictionary to be passed
         into the ax.text function to put a tex
@@ -183,7 +190,7 @@ class Pulse(object):
 
         """
         xpos = self.start_time + self.plen / 2 + self.text_dx
-        ypos = (self.power + self.channel) / 2 + self.text_dy
+        ypos = self.power / 2 + self.channel + self.text_dy
 
         labelparams = {"x": xpos, "y": ypos, "s": self.text}
 
@@ -219,10 +226,7 @@ class Pulse(object):
             shape_array = self.shape(np.linspace(0, 1, self.npoints))
 
         elif isinstance(self.shape, str):
-            try:
-                shape_array = shapedict[self.shape]
-            except KeyError:
-                raise KeyError(f"The shape {self.shape} not understood")
+            shape_array = shapes(self.shape, self.npoints)
 
         else:
             shape_array = np.ones(self.npoints)
@@ -252,7 +256,7 @@ class Pulse(object):
         x = self.time_array()
         y = self.get_shape()
 
-        if self.truncate:
+        if not self.truncate_off:
             vertices = [[x[0], self.channel]]
 
         else:
@@ -261,7 +265,7 @@ class Pulse(object):
         for v in [[i, j + self.channel] for i, j in zip(x, y)]:
             vertices.append(v)
 
-        if self.truncate:
+        if not self.truncate_off:
             vertices.append([x[-1], self.channel])
 
         patch_params = {
@@ -273,7 +277,7 @@ class Pulse(object):
 
         patch_params = {**patch_params, **kwargs}
 
-        pulse_patch = Polygon(vertices, **patch_params)
+        pulse_patch = Polygon(vertices, closed=not self.open, **patch_params)
 
         return pulse_patch
 
@@ -290,7 +294,7 @@ class Delay(object):
 
     """
 
-    def __init__(self, *args, **params):
+    def __init__(self, *args, external_params={}, **params):
         """TODO: to be defined.
 
         Parameters
@@ -305,7 +309,7 @@ class Delay(object):
         except TypeError as e:
             raise TypeError("All arguments without a keyword should be strings")
 
-        args = parse_base(self.args)
+        args = parse_base(self.args, external_params)
 
         # check that the parsig is OK, remove things that are not required
         if args["plen"] is not None:
@@ -367,13 +371,13 @@ class Delay(object):
             raise ValueError("Pulse can only be added to by a constant")
 
 
-class PulseSeq:
+class PulseSeq(object):
     """Docstring for PulseSeq. """
 
-    elements = {}
+    elements = []
 
     def __init__(
-        self, sequence, start_index=0,
+        self, sequence, external_params={},
     ):
         """TODO: to be defined.
 
@@ -394,23 +398,47 @@ class PulseSeq:
 
             if isinstance(arg, str):
                 try:
-                    element = Pulse(arg)
+                    element = Pulse(arg, external_params=external_params)
+
                 except ValueError:
-                    element = Delay(arg)
+                    element = Delay(arg, external_params=external_params)
+
                 except:
                     raise ValueError(f"Argument {arg} not understood.")
 
             elif isinstance(arg, Pulse) or isinstance(arg, Delay):
-                    element = arg
+                element = arg
 
             else:
-                raise ValueError(f"Invalid argument type {type(arg)} ({arg}) for a pulse sequence element")
+                raise ValueError(
+                    f"Invalid argument type {type(arg)} ({arg}) for a pulse sequence element"
+                )
 
-            if not element.name:
-                self.elements[i + start_index] = element
+            self.elements.append(element)
 
-            elif element.name in self.elements.keys():
-                self.elements[f"{element.name}_{i}"] = element
 
-            else:
-                self.element[element.name] = element  
+def shapes(name, npoints):
+
+    if name in ["gaussian", "gauss", "g"]:
+
+        sigma = 0.1
+        center = 0.5
+
+        x = np.linspace(0, 1, npoints)
+
+        pre = 1 / np.sqrt(2 * np.pi) / sigma
+        e = np.exp(-((x - center) ** 2) / 2 / sigma)
+
+        return pre * e
+
+    elif name in ["fid", "f", "detect"]:
+        freq = 10
+        decay = 4
+        x = np.linspace(0, 1, npoints)
+
+        return 0.5 * np.exp(1j * 2 * np.pi * freq * x - decay * x)
+
+    else:
+
+        warn(f"Shape {name} not found. Replacing with a square pulse")
+        return np.ones(npoints)
