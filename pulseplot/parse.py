@@ -1,83 +1,45 @@
+# -*- coding: utf-8 -*-
+
 import re
 from collections import namedtuple
+import json
+import numpy as np
+from matplotlib.patches import Polygon
 
-parameters = namedtuple("parameters", ["name", "type", "default", "pattern"])
+TEXT_DEFAULTS = {"ha": "center", "va": "center"}
 
+PAR = namedtuple("parameters", ["name", "type", "default", "pattern", "parents"])
+
+# fmt: off
 PARAMS = {
-    "p": parameters("plen", float, None, r"(p[^lh ]+)?"),
-    "pl": parameters("power", float, None, r"(pl[^ ]+)?",),
-    "ph": parameters("phase", str, None, r"(ph[^p ]+)?",),
-    "ch": parameters("channel", float, None, r"(ch[^ ]+)?",),
-    "sp": parameters("shape", None, None, r"(sp[^ ]+)?",),
-    "w": parameters("wait", None, False, r"(w)?",),
-    "c": parameters("centered", None, False, r"(c[^h])?",),
-    "kc": parameters("keep_centered", None, False, r"(kc)?",),
-    "fc": parameters("facecolor", str, "white", r"(fc[^ ]+)?",),
-    "ec": parameters("edgecolor", str, "black", r"(ec[^ ]+)?",),
-    "al": parameters("alpha", float, 1.0, r"(al[^ ]+)?",),
-    "tx": parameters("text", str, None, r"(tx[^ ]+)?",),
-    "d": parameters("time", float, None, r"(d[^ ]+)?",),
-    "tr": parameters("truncate", None, True, r"(tr)?",),
-    "np": parameters("npoints", int, 100, r"(np[0-9]+)?",),
-    "tdx": parameters("text_dx", float, 0.0, r"(tdx[^ ]+)?",),
-    "tdy": parameters("text_dy", float, 0.0, r"(tdy[^ ]+)?",),
-    "phpdx": parameters("phtxt_dx", float, 0.0, r"(phpdx[^ ]+)?",),
-    "phpdy": parameters("phtxt_dy", float, 0.0, r"(phpdy[^ ]+)?",),
+    "p":     PAR("plen",          float,  None,     r"(p=?[^lhdk ]+)?",   ["pulse"],),
+    "pl":    PAR("power",         float,  None,     r"(pl=?[^ ]+)?",      ["pulse"],),
+    "ph":    PAR("phase",         str,    None,     r"(ph=?[^ ]+)?",      ["pulse"],),
+    "sp":    PAR("shape",         None,   None,     r"(sp=?[^ ]+)?",      ["pulse"],),
+    "w":     PAR("wait",          None,   False,    r"(w)?",              ["pulse"],),
+    "c":     PAR("centered",      None,   False,    r"(c[^h])?",          ["pulse"],),
+    "kc":    PAR("keep_centered", None,   False,    r"(kc)?",             ["pulse"],),
+    "fc":    PAR("facecolor",     str,    "white",  r"(fc=?[^ ]+)?",      ["pulse"],),
+    "ec":    PAR("edgecolor",     str,    "black",  r"(ec=?[^ ]+)?",      ["pulse"],),
+    "al":    PAR("alpha",         float,  1.0,      r"(al=?[^ ]+)?",      ["pulse"],),
+    "h":     PAR("hatch",         str,    "",       r"(h=?[^ ]+)?",       ["pulse"],),
+    "tr":    PAR("truncate",      None,   True,     r"(tr)?",             ["pulse"],),
+    "np":    PAR("npoints",       int,    100,      r"(np=?[0-9]+)?",     ["pulse"],),
+    "pdx":   PAR("phtxt_dx",      float,  0.0,      r"(pdx=?[^ ]+)?",     ["pulse"],),
+    "pdy":   PAR("phtxt_dy",      float,  0.0,      r"(pdy=?[^ ]+)?",     ["pulse"],),
+    "pkw":   PAR("phase_kw",      None,   "{}",     r"(pkw=?{.*?})?",     ["pulse"],),
+    "d":     PAR("time",          float,  None,     r"(d=?[^ ]+)?",       ["delay"],),
+    "st":    PAR("start_time",    float,  None,     r"(st=?[^ ]+)?",      ["pulse", "delay"],),
+    "ch":    PAR("channel",       float,  None,     r"(ch=?[^ ]+)?",      ["pulse", "delay"],),
+    "tx":    PAR("text",          str,    None,     r"(tx=?[^ ]+)?",      ["pulse", "delay"],),
+    "tdx":   PAR("text_dx",       float,  0.0,      r"(tdx=?[^ ]+)?",     ["pulse", "delay"],),
+    "tdy":   PAR("text_dy",       float,  0.0,      r"(tdy=?[^ ]+)?",     ["pulse", "delay"],),
+    "tkw":   PAR("text_kw",       None,   "{}",     r"(tkw=?{.*?})?",     ["pulse", "delay"],),
+    "n":     PAR("name",          str,    "",       r"(n=?[^p ])?",       ["pulse", "delay"],),
 }
+# fmt: on
 
-
-PATTERN = "".join([v.pattern for v in PARAMS.values()])
-
-TYPES = {
-    "pulse": ["plen", "power", "shape", "npoints", "truncate", "channel"],
-    "pulse_params": ["facecolor", "edgecolor", "alpha"],
-    "pulse_timing": ["wait", "centered", "keep_centered"],
-    "text": ["text", "text_dx", "text_dy"],
-    "phase": ["phase", "phtxt_dx", "phtxt_dy"],
-    "delay": ["time", "channel"],
-}
-
-
-def sort_userparams(userparams):
-    """
-    Parses a single line
-
-    Parameters
-    ----------
-    instructions : str
-        A single
-
-    """
-    if (userparams["plen"] is not None) and (userparams["time"] is not None):
-        raise ValueError("Pulses and delays cannot be mixed")
-
-    sorted_params = {}
-    for type_ in TYPES.keys():
-        p = collect_userparams(userparams, type_)
-        p["_type"] = type_
-        sorted_params[type_] = p
-
-    if sorted_params["pulse"]["plen"] is not None:
-        sorted_params.pop("delay")
-        for n in [
-            "pulse_params",
-            "pulse_timing",
-        ]:
-            sorted_params["pulse"][n] = sorted_params[n]
-            sorted_params[n].pop("_type")
-            sorted_params.pop(n)
-
-    else:
-        for n in ["pulse_params", "pulse_timing", "pulse"]:
-            sorted_params.pop(n)
-
-    if sorted_params["text"]["text"] is None:
-        sorted_params.pop("text")
-
-    if sorted_params["phase"]["phase"] is None:
-        sorted_params.pop("phase")
-
-    return sorted_params
+PATTERN = "".join([v.pattern for k, v in PARAMS.items()])
 
 
 def parse_base(instructions, params=None):
@@ -87,232 +49,368 @@ def parse_base(instructions, params=None):
 
     """
     arguments = [""] * len(PARAMS)
+
     userparams = {}
+
     if params is None:
         params = {}
 
+    # match and squash
     matches = re.findall(PATTERN, instructions)
-
     for m in matches:
         arguments = [i + j for i, j in zip(arguments, m)]
 
-    for arg, (k, v) in zip(arguments, PARAMS.items()):
+    # parse and pick up values + cast to appropriate types
+    for arg, (param, param_info) in zip(arguments, PARAMS.items()):
         if arg:
             try:
+                # check external params dict
                 value = params[arg]
-                if callable(v.type):
-                    userparams[v.name] = v.type(value)
+
+                if callable(param_info.type):
+                    userparams[param_info.name] = param_info.type(value)
+
                 else:
-                    userparams[v.name] = value
+                    userparams[param_info.name] = value
 
             except KeyError:
-                if arg == k:
-                    userparams[v.name] = True
+
+                # special case for Boolean params
+                if arg == param:
+                    userparams[param_info.name] = True
+
                 else:
-                    value = arg[len(k) :]
-                    if callable(v.type):
-                        userparams[v.name] = v.type(value)
+
+                    if arg[len(param)] == "=":
+                        value = arg[len(param) + 1 :]
+
                     else:
-                        userparams[v.name] = value
+                        value = arg[len(param) :]
+
+                    if callable(param_info.type):
+                        userparams[param_info.name] = param_info.type(value)
+
+                    else:
+                        userparams[param_info.name] = value
         else:
-            userparams[v.name] = v.default
+            userparams[param_info.name] = param_info.default
 
     return userparams
 
 
-def parse_single(string, params=None):
+class Pulse(object):
     """
-    Parse a single line of instructions and sorting
-    according to the type of the instruction
-
-    """
-    p = parse_base(string, params)
-
-    return sort_userparams(p)
-
-
-def parse_multiline(string, params=None):
-    """
-    Parse a multiline pulse-sequence
+    Pulse object with annotations, including those
+    for the phase
 
     """
-    instructions = []
-    for s in string.strip().split("\n"):
-        instructions.append(parse_single(s, params))
 
-    return instructions
+    def __init__(self, *args, **params):
+        """TODO: to be defined.
 
-
-def collect_userparams(params, type_):
-    """
-    Collects all parameters of the specified type
-
-    """
-    type_params = {}
-    for v in TYPES[type_]:
-        type_params[v] = params[v]
-
-    return type_params
+        Parameters
+        ----------
+        *args : TODO
+        **kwargs : TODO
 
 
-def collect_pulse_timings(pulse_timing, kwargs):
-    """
-    Collects all keywrods associated with pulse
-    timing instructions into a dictionary and
-    returns the new dictionary and the remaining
-    items
+        """
+        try:
+            self.args = " ".join(i for i in args)
+        except TypeError as e:
+            raise TypeError("All arguments without a keyword should be strings")
 
-    """
-    defaults = {
-        "wait": False,
-        "centered": False,
-        "keep_centered": False,
-    }
+        args = parse_base(self.args)
 
-    if pulse_timing is None:
-        pulse_timing = defaults
-        for k in defaults.keys():
-            if k in kwargs.keys():
-                pulse_timing[k] = kwargs[k]
-                kwargs.pop(k)
+        # check that the parsig is OK, remove things that are not required
+        if args["time"] is not None:
+            raise ValueError("A combination of a Pulse and a Delay is not allowed")
 
-    else:
-        pulse_timing = {**defaults, **pulse_timing}
+        if args["start_time"] is None:
+            self.defer_start_time = True
+            args["start_time"] = 0
+        else:
+            self.defer_start_time = False
 
-    return pulse_timing, kwargs
+        for k, v in PARAMS.items():
+            if "pulse" not in v.parents:
+                args.pop(v.name)
 
+        # handle keywords from string
+        for item in ["phase_kw", "text_kw"]:
+            try:
+                args[item] = json.loads(args[item])
 
-def collect_pulse_params(pulse_params, kwargs, truncate):
-    """
-    Collect arguments for pulse params 
-    These are passed on to the Polygon patch or
-    the Line2D
+            except json.decoder.JSONDecodeError:
+                args[item] = json.loads(args[item].replace("'", '"'))
 
-    """
-    if truncate:
-        defaults = {
-            "facecolor": "white",
-            "edgecolor": "black",
-            "alpha": 1.0,
-            "linewidth": 2.0,
+            except json.decoder.JSONDecodeError as e:
+                raise ValueError(f"The input {args[item]} is not understood.")
+
+        self.__dict__ = {**self.__dict__, **args, **params}
+
+    def phase_params(self, **kwargs):
+        """
+        Generates a dictionary to be passed
+        into the ax.text function to put a phase
+        annotation at an appropriate location.
+        Generates x, y and s parameters from
+        the pulse parameters. Everything is overwritten
+        by the kwargs passed to this function.
+
+        """
+        if self.phase.startswith("_"):
+            text = fr"{self.phase[1:]}"
+
+        else:
+            text = fr"$\phi_{self.phase}$"
+
+        xpos = self.start_time + self.plen / 2 + self.phtxt_dx
+        ypos = self.power + 0.1 + self.phtxt_dy
+
+        phtxtparams = {"x": xpos, "y": ypos, "s": text}
+
+        return {**phtxtparams, **TEXT_DEFAULTS, **self.phase_kw, **kwargs}
+
+    def label_params(self, **ktextwargs):
+        """
+        Generates a dictionary to be passed
+        into the ax.text function to put a tex
+        annotation at an appropriate location.
+        Generates x, y and s parameters from
+        the pulse parameters. Everything is overwritten
+        by the kwargs passed to this function.
+
+        """
+        xpos = self.start_time + self.plen / 2 + self.text_dx
+        ypos = (self.power + self.channel) / 2 + self.text_dy
+
+        labelparams = {"x": xpos, "y": ypos, "s": self.text}
+
+        return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
+
+    def __mul__(self, constant):
+        """Increases the pulse length by a given factor"""
+
+        try:
+            self.plen *= constant
+        except ValueError:
+            raise ValueError("Pulse can only be multiplied with a constant")
+
+    def __add__(self, constant):
+        """Adds a constant to the pulse length"""
+
+        try:
+            self.plen += constant
+        except ValueError:
+            raise ValueError("Pulse can only be added to by a constant")
+
+    def __pow__(self, constant):
+        """Multiplies the power of a pulse by a constant"""
+
+        try:
+            self.power *= constant
+        except ValueError:
+            raise ValueError("Pulse Power can only be increased by constant factor")
+
+    def get_shape(self):
+
+        if callable(self.shape):
+            shape_array = self.shape(np.linspace(0, 1, self.npoints))
+
+        elif isinstance(self.shape, str):
+            try:
+                shape_array = shapedict[self.shape]
+            except KeyError:
+                raise KeyError(f"The shape {self.shape} not understood")
+
+        else:
+            shape_array = np.ones(self.npoints)
+
+        return shape_array * self.power
+
+    def time_array(self):
+
+        if self.centered:
+            start = self.start_time - self.plen / 2
+        else:
+            start = self.start_time
+
+        return np.linspace(start, start + self.plen, self.npoints)
+
+    def end_time(self):
+
+        if self.centered:
+            if self.keep_centered:
+                return self.start_time + self.plen / 2
+
+        else:
+            return self.start_time + self.plen
+
+    def patch(self, **kwargs):
+
+        x = self.time_array()
+        y = self.get_shape()
+
+        if self.truncate:
+            vertices = [[x[0], self.channel]]
+
+        else:
+            vertices = []
+
+        for v in [[i, j + self.channel] for i, j in zip(x, y)]:
+            vertices.append(v)
+
+        if self.truncate:
+            vertices.append([x[-1], self.channel])
+
+        patch_params = {
+            "facecolor": self.facecolor,
+            "edgecolor": self.edgecolor,
+            "hatch": self.hatch,
+            "alpha": self.alpha,
         }
-    else:
-        defaults = {
-            "color": "black",
-            "alpha": 1.0,
-            "linewidth": 2.0,
-        }
 
-    if pulse_params is None:
-        pulse_params = defaults
-        for k in defaults.keys():
-            if k in kwargs.keys():
-                pulse_params[k] = kwargs[k]
-                kwargs.pop(k)
-    else:
-        pulse_params = {**defaults, **pulse_params}
+        patch_params = {**patch_params, **kwargs}
 
-    return pulse_params, kwargs
+        pulse_patch = Polygon(vertices, **patch_params)
+
+        return pulse_patch
+
+    def render(self, ax, **kwargs):
+        pulse_patch = self.patch(**kwargs)
+        ax.add_patch(pulse_patch)
+
+        return ax
 
 
-def collect_phase_params(phase_params, kwargs):
-
-    defaults = {
-        "phase": None,
-        "phtxt_dx": 0.0,
-        "phtxt_dy": 0.0,
-    }
-
-    if phase_params is None:
-        phase_params = defaults
-        for k in defaults.keys():
-            if k in kwargs.keys():
-                phase_params[k] = kwargs[k]
-                kwargs.pop(k)
-
-    else:
-        phase_params = {**defaults, **phase_params}
-
-    phase_params["dx"] = phase_params["phtxt_dx"]
-    phase_params.pop("phtxt_dx")
-    phase_params["dy"] = phase_params["phtxt_dy"]
-    phase_params.pop("phtxt_dy")
-
-    return phase_params, kwargs
-
-
-def collect_text_params(text_params, kwargs):
-
-    defaults = {
-        "text": None,
-        "text_dx": 0.0,
-        "text_dy": 0.0,
-        "channel": None,
-    }
-
-    if text_params is None:
-        text_params = defaults
-        for k in defaults.keys():
-            if k in kwargs.keys():
-                text_params[k] = kwargs[k]
-                kwargs.pop(k)
-
-    else:
-        text_params = {**defaults, **text_params}
-
-    text_params["dx"] = text_params["text_dx"]
-    text_params.pop("text_dx")
-    text_params["dy"] = text_params["text_dy"]
-    text_params.pop("text_dy")
-
-    return text_params, kwargs
-
-
-def text_wrapper(**kwargs):
+class Delay(object):
     """
-    Wrapper around the text command
+    Dealy object with annotations
 
     """
-    if ("x" not in kwargs) or ("y" not in kwargs):
-        raise ValueError("Position for the text is not understood")
 
-    else:
-        if "phase" in kwargs.keys():
-            kwargs["s"] = kwargs["phase"]
-            kwargs.pop("phase")
-        elif "text" in kwargs.keys():
-            kwargs["s"] = kwargs["text"]
-            kwargs.pop("text")
+    def __init__(self, *args, **params):
+        """TODO: to be defined.
 
-    if "dx" in kwargs:
-        kwargs["x"] += kwargs["dx"]
-        kwargs.pop("dx")
-
-    if "dy" in kwargs:
-        kwargs["y"] += kwargs["dy"]
-        kwargs.pop("dy")
-
-    if ("ha" not in kwargs) and ("horizontalalignemnt" not in kwargs):
-        kwargs["ha"] = "center"
-    if ("va" not in kwargs) and ("verticalalignment" not in kwargs):
-        kwargs["va"] = "center"
-
-    return kwargs
+        Parameters
+        ----------
+        *args : TODO
+        **kwargs : TODO
 
 
-def phasetext(phase=None):
-    """
-    Annotate a phase 
+        """
+        try:
+            self.args = " ".join(i for i in args)
+        except TypeError as e:
+            raise TypeError("All arguments without a keyword should be strings")
 
-    """
-    if phase is None:
-        phase = ""
-    else:
-        phase = str(phase)
+        args = parse_base(self.args)
 
-    if phase.startswith("_"):
-        phase = phase[1:]
-    else:
-        phase = r"$\mathrm{\phi_{" + phase + "}}$"
+        # check that the parsig is OK, remove things that are not required
+        if args["plen"] is not None:
+            raise ValueError("A combination of a Pulse and a Delay is not allowed")
 
-    return phase
+        if args["start_time"] is None:
+            self.defer_start_time = True
+            args["start_time"] = 0
+        else:
+            self.defer_start_time = False
+
+        for k, v in PARAMS.items():
+            if "delay" not in v.parents:
+                args.pop(v.name)
+
+        for item in ["text_kw"]:
+            try:
+                args[item] = json.loads(args[item])
+
+            except json.decoder.JSONDecodeError:
+                args[item] = json.loads(args[item].replace("'", '"'))
+
+            except json.decoder.JSONDecodeError as e:
+                raise ValueError(f"The input {args[item]} is not understood.")
+
+        self.__dict__ = {**self.__dict__, **args, **params}
+
+    def label_params(self, **kwargs):
+        """
+        Generates a dictionary to be passed
+        into the ax.text function to put a tex
+        annotation at an appropriate location.
+        Generates x, y and s parameters from
+        the pulse parameters. Everything is overwritten
+        by the kwargs passed to this function.
+
+        """
+        xpos = self.start_time + self.time / 2 + self.text_dx
+        ypos = self.channel + self.text_dy + 0.1
+
+        labelparams = {"x": xpos, "y": ypos, "s": self.text}
+
+        return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
+
+    def __mul__(self, constant):
+        """Increases the delay by a given factor"""
+
+        try:
+            self.time *= constant
+        except ValueError:
+            raise ValueError("Pulse can only be multiplied with a constant")
+
+    def __add__(self, constant):
+        """Adds a constant to the pulse length"""
+
+        try:
+            self.time += constant
+        except ValueError:
+            raise ValueError("Pulse can only be added to by a constant")
+
+
+class PulseSeq:
+    """Docstring for PulseSeq. """
+
+    elements = {}
+
+    def __init__(
+        self, sequence, start_index=0,
+    ):
+        """TODO: to be defined.
+
+        Parameters
+        ----------
+        *args : TODO
+        **kwargs : TODO
+
+        """
+
+        if isinstance(sequence, str):
+            self.args = [i for i in sequence.split("\n") if i.strip()]
+
+        elif isinstance(sequence, list):
+            self.args = sequence
+
+        for i, arg in enumerate(self.args):
+
+            if isinstance(arg, str):
+                try:
+                    element = Pulse(arg)
+                except ValueError:
+                    element = Delay(arg)
+                except:
+                    raise ValueError(f"Argument {arg} not understood.")
+
+            elif isinstance(arg, Pulse) or isinstance(arg, Delay):
+                    element = arg
+
+            else:
+                raise ValueError(f"Invalid argument type {type(arg)} ({arg}) for a pulse sequence element")
+
+            if not element.name:
+                self.elements[i + start_index] = element
+
+            elif element.name in self.elements.keys():
+                self.elements[f"{element.name}_{i}"] = element
+
+            else:
+                self.element[element.name] = element  
