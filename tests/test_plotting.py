@@ -1,7 +1,9 @@
-from pulseplot import pplot
 import matplotlib.pyplot as plt
 import numpy as np
+from pulseplot import pplot
+from pathlib import Path
 
+TESTDIR = Path(__file__).parent
 
 def test_pulse_1():
     fig, ax = pplot()
@@ -20,6 +22,4 @@ def test_pulse_1():
     ax.set_xlim(0, 11)
     ax.set_ylim(0, 3)
 
-    fig.savefig("test_pulse_1.png")
-
-    assert 1 is 1
+    fig.savefig(TESTDIR.joinpath("test_pulse_1.png"))
