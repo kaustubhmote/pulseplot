@@ -29,7 +29,7 @@ PARAMS = {
     "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",     ["pulse"],),
     "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",     ["pulse"],),
     "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",     ["pulse"],),
-    "pkw":   PAR("phase_kw",        None,   "{}",     r"(pkw=?{.*?})?",     ["pulse"],),
+    "pkw":   PAR("phase_kw",        str,   "{}",     r"(pkw=?{.*?})?",      ["pulse"],),
     "o":     PAR("open",            bool,   False,    r"(o)?",              ["pulse"],),  
     "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",       ["delay"],),
     "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",      ["pulse", "delay"],),
@@ -37,7 +37,7 @@ PARAMS = {
     "tx":    PAR("text",            str,    None,     r"(tx=?[^ ]+)?",      ["pulse", "delay"],),
     "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",     ["pulse", "delay"],),
     "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",     ["pulse", "delay"],),
-    "tkw":   PAR("text_kw",         None,   "{}",     r"(tkw=?{.*?})?",     ["pulse", "delay"],),
+    "tkw":   PAR("text_kw",         str,   "{}",     r"(tkw=?{.*?})?",     ["pulse", "delay"],),
     "n":     PAR("name",            str,    "",       r"(n=?[^p ])?",       ["pulse", "delay"],),
 }
 # fmt: on
@@ -127,7 +127,7 @@ class Pulse(object):
 
         args = parse_base(self.args, external_params)
 
-        # check that the parsig is OK, remove things that are not required
+        # check that the parsing is OK, remove things that are not required
         if args["time"] is not None:
             raise ValueError("A combination of a Pulse and a Delay is not allowed")
 
@@ -197,31 +197,40 @@ class Pulse(object):
         return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
 
     def __mul__(self, constant):
-        """Increases the pulse length by a given factor"""
-
+        """
+        Increases the pulse length by a given factor
+        
+        """
         try:
             self.plen *= constant
         except ValueError:
             raise ValueError("Pulse can only be multiplied with a constant")
 
     def __add__(self, constant):
-        """Adds a constant to the pulse length"""
-
+        """
+        Adds a constant to the pulse length
+        
+        """
         try:
             self.plen += constant
         except ValueError:
             raise ValueError("Pulse can only be added to by a constant")
 
     def __pow__(self, constant):
-        """Multiplies the power of a pulse by a constant"""
-
+        """
+        Multiplies the power of a pulse by a constant
+        
+        """
         try:
             self.power *= constant
         except ValueError:
             raise ValueError("Pulse Power can only be increased by constant factor")
 
     def get_shape(self):
+        """
+        Returns the shape of the pulse on an array from 0 to 1
 
+        """
         if callable(self.shape):
             shape_array = self.shape(np.linspace(0, 1, self.npoints))
 
@@ -234,7 +243,10 @@ class Pulse(object):
         return shape_array * self.power
 
     def time_array(self):
-
+        """
+        Gets the x-axis for the pulse
+        
+        """
         if self.centered:
             start = self.start_time - self.plen / 2
         else:
@@ -243,7 +255,12 @@ class Pulse(object):
         return np.linspace(start, start + self.plen, self.npoints)
 
     def end_time(self):
+        """
+        Gets the time point where the pulse is supposed to end
+        Depending on whether the wait of keep centered keywords
+        are set, it gives the appropriate end time
 
+        """
         if self.centered:
             if self.keep_centered:
                 return self.start_time + self.plen / 2
@@ -252,7 +269,11 @@ class Pulse(object):
             return self.start_time + self.plen
 
     def patch(self, **kwargs):
-
+        """
+        Gets the matplotlib.patches.Polygon patch for the pulse 
+        to be added on to an matplotlib Axes object
+                
+        """
         x = self.time_array()
         y = self.get_shape()
 
@@ -282,6 +303,11 @@ class Pulse(object):
         return pulse_patch
 
     def render(self, ax, **kwargs):
+        """
+        Adds a polygon patch of the pulse to the 
+        given axes object
+
+        """
         pulse_patch = self.patch(**kwargs)
         ax.add_patch(pulse_patch)
 
