@@ -47,24 +47,50 @@ class PulseProgram(plt.Axes):
     >>> ax.pulse("p1 pl1 ph2 f2 w")
     >>> ax.fid("p1 pl1 phrec f2")
 
-
     """
 
     name = "PulseProgram"
-    channels = []
-    time = 0.0
-    params = {}
-    elements = []
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        self.spacing = 0.0
+        self.phase_dy = 0.0
+        self.text_dy = 0.0
+        self.fontsize = None
+        self.time = 0.0
+        self.params = {}
+        self.elements = []
 
     def pulse(self, *args, **kwargs):
 
-        p = Pulse(*args, **kwargs, external_params=self.params)
+        if isinstance(args[0], Pulse):
+            p = args[0]
+
+        else:
+            p = Pulse(*args, **kwargs, external_params=self.params)
 
         if p.defer_start_time:
             p.start_time = self.time
+            p.start_time += self.spacing
+            p.plen -= self.spacing
             self.time = p.end_time()
 
+        p.text_dy += self.text_dy
+        p.phtxt_dy += self.phase_dy
+        
+        if self.fontsize:
+            if "fontsize" not in p.text_kw:
+                p.text_kw["fontsize"] = self.fontsize
+            if "fontsize" not in p.phase_kw:
+                p.phase_kw["fontsize"] = self.fontsize
+
         p.render(super())
+
+        p.start_time -= self.spacing
+        p.plen += self.spacing
+
 
         try:
             super().text(**p.label_params())
@@ -76,26 +102,27 @@ class PulseProgram(plt.Axes):
         except:
             pass
 
+        p.text_dy -= self.text_dy
+        p.phtxt_dy -= self.phase_dy
+
+
         self.elements.append(p)
 
     def delay(self, *args, **kwargs):
 
         if isinstance(args[0], Delay):
-
-            if len(args) > 1:
-                raise ValueError("No args allowed if a Delay object is supplied")
-
-            else:
-                d = Delay(args[0].args, **kwargs, external_params=self.params)
+            d = args[0]
 
         else:
             d = Delay(*args, **kwargs, external_params=self.params)
 
         if d.defer_start_time:
-            self.time = d.end_time()
+            d.start_time = self.time
+
+        self.time += d.time
 
         try:
-            super().text(d.label_params())
+            super().text(**d.label_params())
         except:
             pass
 
@@ -133,8 +160,17 @@ class PulseProgram(plt.Axes):
             else:
                 super().plot(limits, [i, i], color=color, **kwargs)
 
-    def pseq(self, instruction, **kwargs):
+    def pseq(self, instruction):
         """
         Main way in which 
         
         """
+        if isinstance(instruction, str):
+            instruction = PulseSeq(instruction, external_params=self.params)
+
+        for item in instruction.elements:
+            if isinstance(item, Pulse):
+                self.pulse(item)
+            elif isinstance(item, Delay):
+                self.delay(item)
+
