@@ -20,7 +20,6 @@ PARAMS = {
     "w":     PAR("wait",            bool,   False,    r"(w)?",              ["pulse"],),
     "c":     PAR("centered",        bool,   False,    r"(c[^l])?",          ["pulse"],),
     "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",             ["pulse"],),
-    "vc":    PAR("vertical_center", bool,   False,    r"(vc)?",             ["pulse"],),
     "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",      ["pulse"],),
     "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",      ["pulse"],),
     "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",      ["pulse"],),
@@ -29,7 +28,7 @@ PARAMS = {
     "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",     ["pulse"],),
     "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",     ["pulse"],),
     "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",     ["pulse"],),
-    "pkw":   PAR("phase_kw",        str,   "{}",     r"(pkw=?{.*?})?",      ["pulse"],),
+    "pkw":   PAR("phase_kw",        str,   "{}",      r"(pkw=?{.*?})?",     ["pulse"],),
     "o":     PAR("open",            bool,   False,    r"(o)?",              ["pulse"],),  
     "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",       ["delay"],),
     "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",      ["pulse", "delay"],),
@@ -37,8 +36,8 @@ PARAMS = {
     "tx":    PAR("text",            str,    None,     r"(tx=?[^ ]+)?",      ["pulse", "delay"],),
     "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",     ["pulse", "delay"],),
     "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",     ["pulse", "delay"],),
-    "tkw":   PAR("text_kw",         str,   "{}",     r"(tkw=?{.*?})?",     ["pulse", "delay"],),
-    "n":     PAR("name",            str,    "",       r"(n=?[^p ])?",       ["pulse", "delay"],),
+    "tkw":   PAR("text_kw",         str,   "{}",      r"(tkw=?{.*?})?",     ["pulse", "delay"],),
+    "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",      ["pulse", "delay"],),
 }
 # fmt: on
 
@@ -91,6 +90,7 @@ def parse_base(instructions, params=None):
                         value = arg[len(param) :]
 
                     if callable(param_info.type):
+
                         userparams[param_info.name] = param_info.type(value)
 
                     else:
@@ -153,8 +153,6 @@ class Pulse(object):
                 raise ValueError(f"The input {args[item]} is not understood.")
 
         self.__dict__ = {**self.__dict__, **args, **params}
-
-        print(self.open)
 
     def phase_params(self, **kwargs):
         """
@@ -263,10 +261,20 @@ class Pulse(object):
         """
         if self.centered:
             if self.keep_centered:
+                return self.start_time
+
+            elif self.wait:
+                return self.start_time - self.plen / 2
+
+            else:
                 return self.start_time + self.plen / 2
 
         else:
-            return self.start_time + self.plen
+            if self.wait:
+                return self.start_time
+
+            else:
+                return self.start_time + self.plen
 
     def patch(self, **kwargs):
         """
@@ -400,7 +408,6 @@ class Delay(object):
 class PulseSeq(object):
     """Docstring for PulseSeq. """
 
-    elements = []
 
     def __init__(
         self, sequence, external_params={},
@@ -413,15 +420,18 @@ class PulseSeq(object):
         **kwargs : TODO
 
         """
+        self.elements = []
+        self.named_elements = {}
+        self.input_string = ""
 
         if isinstance(sequence, str):
+            self.input_string = sequence
             self.args = [i for i in sequence.split("\n") if i.strip()]
 
         elif isinstance(sequence, list):
             self.args = sequence
 
         for i, arg in enumerate(self.args):
-
             if isinstance(arg, str):
                 try:
                     element = Pulse(arg, external_params=external_params)
@@ -441,6 +451,28 @@ class PulseSeq(object):
                 )
 
             self.elements.append(element)
+
+            if element.name:
+                self.named_elements[element.name] = i
+
+
+    def edit(self, index=None, name=None, **kwargs):
+
+        if index is not None:
+            self.elements[index].__dict__.update(kwargs)
+            
+        elif name is not None:
+            try:
+                index = self.named_elements[name]
+            except KeyError:
+                raise KeyError(f"Element {name} not found")
+
+            self.elements[index].__dict__.update(kwargs)
+ 
+
+    def __len__(self):
+        return len(self.elements)
+
 
 
 def shapes(name, npoints):
@@ -462,9 +494,28 @@ def shapes(name, npoints):
         decay = 4
         x = np.linspace(0, 1, npoints)
 
-        return 0.5 * np.exp(1j * 2 * np.pi * freq * x - decay * x)
+        return 0.5 * np.exp(1j * 2 * np.pi * freq * x - decay * x).real
+
+    elif name.startswith("rampup_"):
+        try:
+            percent = float(name.split("rampup_")[1])
+            return np.linspace(1 - percent / 100, 1, npoints)
+
+        except ValueError:
+            return replace_with_square_pulse(name, npoints)
+
+    elif name.startswith("rampdown_"):
+        try:
+            percent = float(name.split("rdw_")[1])
+            return np.linspace(1, 1 - percent / 100, npoints)
+        except:
+            return replace_with_square_pulse(npoints)
 
     else:
+        return replace_with_square_pulse(name, npoints)
 
-        warn(f"Shape {name} not found. Replacing with a square pulse")
-        return np.ones(npoints)
+
+def replace_with_square_pulse(name, npoints):
+    warn(f"Shape {name} not understood. Replacing with a square pulse")
+    return np.ones(npoints)
+
