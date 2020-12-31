@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import enum
 import re
 from collections import namedtuple
 import json
@@ -60,7 +61,11 @@ def parse_base(instructions, params=None):
     # match and squash
     matches = re.findall(PATTERN, instructions)
     for m in matches:
-        arguments = [i + j for i, j in zip(arguments, m)]
+        for i, _ in enumerate(arguments):
+            if value := m[i]:
+                arguments[i] = value
+
+        # arguments = [i + j for i, j in zip(arguments, m)]
 
     # parse and pick up values + cast to appropriate types
     for arg, (param, param_info) in zip(arguments, PARAMS.items()):
@@ -70,8 +75,10 @@ def parse_base(instructions, params=None):
                 value = params[arg]
 
                 if callable(param_info.type):
-                    userparams[param_info.name] = param_info.type(value)
-
+                    try:
+                        userparams[param_info.name] = param_info.type(value)
+                    except ValueError:
+                        raise ValueError(f"Cannot cast {arg} in the appropriate type {param_info.type} ")
                 else:
                     userparams[param_info.name] = value
 
@@ -82,17 +89,16 @@ def parse_base(instructions, params=None):
                     userparams[param_info.name] = not param_info.default
 
                 else:
-
                     if arg[len(param)] == "=":
                         value = arg[len(param) + 1 :]
-
                     else:
                         value = arg[len(param) :]
 
                     if callable(param_info.type):
-
-                        userparams[param_info.name] = param_info.type(value)
-
+                        try:
+                            userparams[param_info.name] = param_info.type(value)
+                        except ValueError:
+                            raise ValueError(f"Cannot cast {arg} in the appropriate type {param_info.type}")
                     else:
                         userparams[param_info.name] = value
         else:
@@ -103,9 +109,7 @@ def parse_base(instructions, params=None):
 
 class Pulse(object):
     """
-    Pulse object with annotations, including those
-    for the phase
-
+    Pulse object
     """
 
     def __init__(
