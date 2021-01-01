@@ -19,8 +19,8 @@ def test_pulse_1():
         text="shaded",
         shape=lambda x: np.exp(-((x - 0.5) ** 2) / 0.05),
     )
-    ax.pulse("p2 pl0.5 f1 spf ecr o troff", facecolor="none")
-    ax.fid("p2 pl0.5 f2 st8")
+    ax.pulse("p2 pl0.5 f1 spfid ecr o troff", facecolor="none")
+    ax.pulse("p1 pl1 f2 st8 sp=gauss")
 
     ax.set_xlim(0, 11)
     ax.set_ylim(0, 3)
@@ -34,7 +34,7 @@ def test_pulse_delay():
     ax.delay(r"d2 tx$\tau$ f1")
     ax.pulse(r"p1 pl1 ph1 f1 fck")
     ax.delay(r"d2 tx$\tau$ f1")
-    ax.fid(r"p2 pl0.5 f1")
+    # ax.fid(r"p2 pl0.5 f1")
     ax.set_xlim(0, 11)
     ax.set_ylim(0, 3)
     fig.savefig(TESTDIR.joinpath("test_pulse_delay.png"))
@@ -50,7 +50,7 @@ def test_pulseseq():
     d2 tx$\tau$ f1
     p1 pl1 ph4 f1 fck w
     p1 pl1 ph5 f2 fck
-    p3 pl1 spf f1 troff o fcnone ecr w
+    p3 pl1 sp=fid f1 troff o fcnone ecr w
     p3 pl0.9 sp=rampup_30 f2 tx=decoupling tkw={'fontsize':10} tdy=-0.1
     """
 
@@ -78,6 +78,29 @@ def test_pulseseq():
     print(ax.texts[1].remove())
 
     fig.savefig(TESTDIR.joinpath("test_pulseseq.png"))
+
+
+def test_shaped_pulses():
+    p = r"""
+    p2 pl1 f1 sp=gauss
+    d1
+    p2 pl1 f2 sp=ramp_50
+    d1
+    p2 pl1 f1 sp=ramp_-50
+    d1
+    p2 pl0.5 f2 sp=tan_50
+    d1
+    p2 pl1 f1 sp=tan_-20 
+
+    """
+
+    fig, ax = pplot()
+    ax.params = {"p2": 4, "d1": 0.2}
+    ax.pseq(p)
+
+    ax.set_xlim(-1, 22)
+    ax.set_ylim(-1, 4)
+    fig.savefig(TESTDIR.joinpath("test_shaped_pulses.png"))
 
 
 if __name__ == "__main__":
