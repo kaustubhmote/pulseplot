@@ -2,10 +2,10 @@
 Utilities for making plots
 
 """
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.projections import register_projection
-from .parse import PulseSeq, Pulse, Delay
+
+from .parse import Delay, Pulse, PulseSeq
 
 
 def pplot(*args, **kwargs):

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import enum
+import json
 import re
 from collections import namedtuple
-import json
+from warnings import warn
+
 import numpy as np
 from matplotlib.patches import Polygon
-from warnings import warn
 
 TEXT_DEFAULTS = {"ha": "center", "va": "center"}
 

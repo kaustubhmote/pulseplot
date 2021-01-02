@@ -1,8 +1,9 @@
-from pulseplot.parse import PulseSeq, Pulse
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 from pulseplot import pplot
-from pathlib import Path
+from pulseplot.parse import Pulse, PulseSeq
 
 TESTDIR = Path(__file__).parent
 
