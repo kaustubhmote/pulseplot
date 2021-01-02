@@ -478,7 +478,9 @@ class PulseSeq(object):
 
 
 class Shape(object):
+
     def __init__(self, name, npoints):
+        """shape object with a name and the number of points"""
 
         self.input = str(name)
         self.npoints = int(npoints)
@@ -489,6 +491,7 @@ class Shape(object):
         self.pars = allpars[1:]
 
     def guess_pars(self):
+        """Guesses the shape name and any parameters separated by _"""
         new_pars = ["", None, None]
         pars = self.input.split("_")
 
@@ -504,6 +507,7 @@ class Shape(object):
         return new_pars
 
     def get_shape(self):
+        """Returns the shape after introspecting the passed parameters"""
         try:
             return self.__getattribute__(self.name)(*self.pars)
         except AttributeError:
@@ -513,9 +517,11 @@ class Shape(object):
             return self.square()
 
     def square(self):
+        """Square shaped pulse, use here as a fallback"""
         return np.ones(self.npoints)
 
     def gauss(self, x0, sigma, *args, **kwargs):
+        "Gaussian shaped pulse"
         if x0 is None:
             x0 = 0.5
         if sigma is None:
@@ -524,6 +530,7 @@ class Shape(object):
         return np.exp(-((self.xscale - x0) ** 2) / 2 / sigma ** 2)
 
     def ramp(self, percent, *args, **kwargs):
+        """Linear ramp"""
         if percent is None:
             percent = 40
 
@@ -535,6 +542,7 @@ class Shape(object):
             return s[::-1]
 
     def tan(self, percent, curvature, *args, **kwargs):
+        """Adiabatic (Tangential) Shape"""
         if percent is None:
             percent = 50
         if curvature is None:
@@ -553,6 +561,7 @@ class Shape(object):
             return tanshape[::-1]
 
     def fid(self, freq, decay, *args, **kwargs):
+        """Free induction decay"""
         if freq is None:
             freq = 2 * np.pi * 10
         else:
@@ -564,6 +573,7 @@ class Shape(object):
         return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
 
     def grad(self, rise, *args, **kwargs):
+        """Gradient shape"""
         if rise is None:
             rise = 8
 
@@ -573,9 +583,11 @@ class Shape(object):
         return gradfx / np.max(gradfx)
 
     def sine(self, *args, **kwargs):
+        """Single sine shape"""
 
         x = np.linspace(0, np.pi, self.npoints)
         return np.sin(x)
 
     def grad2(self, *args, **kwargs):
+        """Gradient: uses the sine shape instead of actual gradient shape"""
         return self.sine(*args, **kwargs)
