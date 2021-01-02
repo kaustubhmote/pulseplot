@@ -61,7 +61,8 @@ class PulseProgram(plt.Axes):
         self.fontsize = None
         self.time = 0.0
         self.params = {}
-        self.elements = []
+        self.limits = {"xlow": 0.9, "xhigh": 2, "ylow": -0.1, "yhigh": 2}
+        self.set_limits()
 
     def pulse(self, *args, **kwargs):
 
@@ -79,34 +80,41 @@ class PulseProgram(plt.Axes):
 
         p.text_dy += self.text_dy
         p.phtxt_dy += self.phase_dy
-        
+
         if self.fontsize:
             if "fontsize" not in p.text_kw:
                 p.text_kw["fontsize"] = self.fontsize
             if "fontsize" not in p.phase_kw:
                 p.phase_kw["fontsize"] = self.fontsize
 
-        p.render(super())
+        # add the actual pulse
+        pulse_patch = p.patch()
+        super().add_patch(pulse_patch)
+
+        xarr, yarr = pulse_patch.xy[:, 0], pulse_patch.xy[:, 1]
+        self.edit_limits(
+            xlow=min(xarr), xhigh=max(xarr), ylow=min(yarr), yhigh=max(yarr)
+        )
 
         p.start_time -= self.spacing
         p.plen += self.spacing
 
-
         try:
             super().text(**p.label_params())
+            xpos, ypos = p.label_params["x"], p.label_params["y"]
+            self.edit_limits(xlow=xpos, xhigh=xpos, ylow=ypos, yhigh=ypos)
         except:
             pass
 
         try:
             super().text(**p.phase_params())
+            xpos, ypos = p.phase_params["x"], p.phase_params["y"]
+            self.edit_limits(xlow=xpos, xhigh=xpos, ylow=ypos, yhigh=ypos)
         except:
             pass
 
         p.text_dy -= self.text_dy
         p.phtxt_dy -= self.phase_dy
-
-
-        self.elements.append(p)
 
     def delay(self, *args, **kwargs):
 
@@ -126,28 +134,24 @@ class PulseProgram(plt.Axes):
         except:
             pass
 
-        self.elements.append(d)
-
     def fid(self, *args, **kwargs):
 
         self.pulse(
-            *args, **kwargs, shape="fid", truncate_off=True, open=True, facecolor="none"
+            *args,
+            **kwargs,
+            shape="fid",
+            truncate_off=True,
+            open=True,
+            facecolor="none",
         )
 
-    def add_elements(self, arg):
-
-        if isinstance(arg, str):
-            psq = PulseSeq(arg, external_params=self.params)
-            self.elements += psq.elements
-
-    def reset(self):
+    def clear(self):
         """
         Removes all channels and resets the time to zero
 
         """
-        self.channels = []
         self.time = 0.0
-        self.elements = []
+        super().clear()
 
     def draw_channels(self, limits=None, color="k", **kwargs):
         """
@@ -173,4 +177,31 @@ class PulseProgram(plt.Axes):
                 self.pulse(item)
             elif isinstance(item, Delay):
                 self.delay(item)
+
+    def set_limits(self, limits=None):
+
+        if limits is not None:
+            self.limits = limits
+
+        try:
+            super().set_xlim(self.limits["xlow"], self.limits["xhigh"])
+            super().set_ylim(self.limits["ylow"], self.limits["yhigh"])
+        except IndexError:
+            raise IndexError("limits should be given as [xlow, xhigh, ylow, yhigh]")
+
+    def edit_limits(self, xlow=None, xhigh=None, ylow=None, yhigh=None):
+
+        if (xlow is not None) and (xlow - 0.5 < self.limits["xlow"]):
+            self.limits["xlow"] = xlow - 0.5
+
+        if (ylow is not None) and (ylow - 0.5 < self.limits["ylow"]):
+            self.limits["ylow"] = ylow - 0.5
+
+        if (xhigh is not None) and (xhigh + 0.5 > self.limits["xhigh"]):
+            self.limits["xhigh"] = xhigh + 0.5
+
+        if (yhigh is not None) and (yhigh + 0.5 > self.limits["yhigh"]):
+            self.limits["yhigh"] = yhigh + 0.5
+
+        self.set_limits()
 

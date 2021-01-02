@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pulseplot import pplot
 from pathlib import Path
-import time
 
 TESTDIR = Path(__file__).parent
 
@@ -34,7 +33,7 @@ def test_pulse_delay():
     ax.delay(r"d2 tx$\tau$ f1")
     ax.pulse(r"p1 pl1 ph1 f1 fck")
     ax.delay(r"d2 tx$\tau$ f1")
-    # ax.fid(r"p2 pl0.5 f1")
+    ax.fid(r"p2 pl0.5 f1")
     ax.set_xlim(0, 11)
     ax.set_ylim(0, 3)
     fig.savefig(TESTDIR.joinpath("test_pulse_delay.png"))
@@ -82,26 +81,20 @@ def test_pulseseq():
 
 def test_shaped_pulses():
     p = r"""
-    p2 pl1 f1 sp=gauss
-    d1
-    p2 pl1 f2 sp=ramp_50
-    d1
-    p2 pl1 f1 sp=ramp_-50
-    d1
-    p2 pl0.5 f2 sp=tan_50
-    d1
-    p2 pl1 f1 sp=tan_-20 
+    p2 pl1 f1 sp=gauss tx=gauss ph1 tdy=-0.36 pdy0.2 ecr fcr al0.5
+    p2 pl1 f2 sp=ramp_50 tx=rampup ph_x tdy=-0.2
+    p2 pl1 f1 sp=ramp_-50 tx=rampdown ph_new tkw={'fontsize':11} tdy-0.2
+    p2 pl0.5 f2 sp=tan_50 tx=tanup tdy=-0.05
+    p2 pl1 fH sp=tan_-20 tx=tandown
+    p2 pl1 f2 troff o sp=fid phrec pdy-0.2 ecg
 
     """
-
     fig, ax = pplot()
-    ax.params = {"p2": 4, "d1": 0.2}
+    ax.params = {"p2": 4, "d1": 0.2, "f1":0, "f2":2, "fH":-1}
     ax.pseq(p)
-
-    ax.set_xlim(-1, 22)
-    ax.set_ylim(-1, 4)
+    ax.set_limits()
     fig.savefig(TESTDIR.joinpath("test_shaped_pulses.png"))
 
 
 if __name__ == "__main__":
-    test_pulseseq()
+    test_shaped_pulses()
