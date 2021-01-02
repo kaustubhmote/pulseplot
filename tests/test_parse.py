@@ -34,7 +34,7 @@ def test_parse_base_1():
     assert pX.phase_params() == {
         "x": 0.5,
         "y": 3.1,
-        "s": "$\\phi_1$",
+        "s": "$\\phi_{1}$",
         "ha": "center",
         "va": "center",
     }

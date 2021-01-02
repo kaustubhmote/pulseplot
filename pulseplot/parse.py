@@ -176,7 +176,7 @@ class Pulse(object):
             text = fr"{self.phase[1:]}"
 
         else:
-            text = fr"$\phi_{self.phase}$"
+            text = fr"$\phi_{{{self.phase}}}$"
 
         xpos = self.start_time + self.plen / 2 + self.phtxt_dx
         ypos = self.channel + self.power + 0.1 + self.phtxt_dy
@@ -241,7 +241,7 @@ class Pulse(object):
             shape_array = self.shape(np.linspace(0, 1, self.npoints))
 
         elif isinstance(self.shape, str):
-            shape_array = shapes(self.shape, self.npoints)
+            shape_array = Shape(self.shape, self.npoints).get_shape()
 
         else:
             shape_array = np.ones(self.npoints)
@@ -479,14 +479,7 @@ class PulseSeq(object):
         return len(self.elements)
 
 
-
-def shapes(name, npoints):
-    s = Shape(name, npoints)
-    return s.get_shape()
-
-
 class Shape(object):
-
     def __init__(self, name, npoints):
 
         self.input = str(name)
@@ -504,7 +497,7 @@ class Shape(object):
         try:
             new_pars[0] = str(pars[0])
             new_pars[1] = float(pars[1])
-            new_pars[2] = float(pars[2])        
+            new_pars[2] = float(pars[2])
         except IndexError:
             pass
         except ValueError:
@@ -512,28 +505,25 @@ class Shape(object):
 
         return new_pars
 
-
     def get_shape(self):
         try:
             return self.__getattribute__(self.name)(*self.pars)
         except AttributeError:
+            warn(
+                f"Did not understand the shape {self.name}. Changing to a square shape"
+            )
             return self.square()
 
-    
     def square(self):
         return np.ones(self.npoints)
-
 
     def gauss(self, x0, sigma, *args, **kwargs):
         if x0 is None:
             x0 = 0.5
         if sigma is None:
             sigma = 1 / 6.0
-        
-        return np.exp(-((self.xscale - x0) ** 2) / 2 / sigma**2)
 
-        # return pre * e
-
+        return np.exp(-((self.xscale - x0) ** 2) / 2 / sigma ** 2)
 
     def ramp(self, percent, *args, **kwargs):
         if percent is None:
@@ -546,7 +536,6 @@ class Shape(object):
         else:
             return s[::-1]
 
-
     def tan(self, percent, curvature, *args, **kwargs):
         if percent is None:
             percent = 50
@@ -555,18 +544,17 @@ class Shape(object):
 
         p = abs(percent) / 100
 
-        tanshape =  np.sinh((self.xscale - 0.5) / curvature)
+        tanshape = np.sinh((self.xscale - 0.5) / curvature)
         tanshape /= np.max(tanshape)
         tanshape += 1
         tanshape *= p / 2
-        tanshape += (1 - p)
+        tanshape += 1 - p
 
         if percent > 0:
             return tanshape
         else:
             return tanshape[::-1]
 
-    
     def fid(self, freq, decay, *args, **kwargs):
         if freq is None:
             freq = 2 * np.pi * 10
@@ -576,81 +564,5 @@ class Shape(object):
         if decay is None:
             decay = 5
 
-        elfid =  0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
-        print(elfid)
 
-        return elfid
-
-        
-
-
-
-        
-
-        
-
-
-def shapes2(name, npoints):
-
-    # def _get_pars(prefix, name):
-
-    x = np.linspace(0, 1, npoints)
-
-    if name.startswith("gauss"):
-
-        if len(name) == 5:
-            sigma, center = 0.1, 0.5
-        else:
-            try:
-                sigma, center = [float(i) for i in name[5:].split("_")]
-            except ValueError:
-                return replace_with_square_pulse()
-
-        pre = 1 / np.sqrt(2 * np.pi) / sigma
-        e = np.exp(-((x - center) ** 2) / 2 / sigma)
-
-        return pre * e
-
-    elif name.startswith("fid"):
-        if len(name) == 3:
-            freq, decay = 0.1, 0.5
-        else:
-            try:
-                freq, decay = [float(i) for i in name[5:].split("_")]
-            except ValueError:
-                return replace_with_square_pulse()
-
-        return 0.5 * np.exp(1j * 2 * np.pi * freq * x - decay * x).real
-
-    elif name.startswith("ramp_up"):
-        try:
-            percent = float(name.split("ramp_up")[1])
-            return np.linspace(1 - percent / 100, 1, npoints)
-
-        except ValueError:
-            return replace_with_square_pulse(name, npoints)
-
-    elif name.startswith("ramp_down"):
-        try:
-            if len(name) == 9:
-                return np.linspace(1, 1 - 40 / 100, npoints)
-            else:
-                percent = float(name[9:])
-                return np.linspace(1, 1 - percent / 100, npoints)
-        except:
-            return replace_with_square_pulse(npoints)
-
-    elif name.startswith("adiabatic_up"):
-        return lambda x: np.sinh((x - 0.5) / 0.4) + 1
-
-    elif name.startswith("adiabatic_down"):
-        return lambda x: (np.sinh((x - 0.5) / 0.4) + 1)[::-1]
-
-    else:
-        return replace_with_square_pulse(name, npoints)
-
-
-def replace_with_square_pulse(name, npoints):
-    warn(f"Shape {name} not understood. Replacing with a square pulse")
-    return np.ones(npoints)
-
+        return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real + 0.5
