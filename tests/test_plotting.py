@@ -51,6 +51,7 @@ def test_pulseseq():
     p1 pl1 ph5 f2 fck
     p3 pl1 sp=fid f1 troff o fcnone ecr w
     p3 pl0.9 sp=rampup_30 f2 tx=decoupling tkw={'fontsize':10} tdy=-0.1
+
     """
 
 
@@ -67,7 +68,6 @@ def test_pulseseq():
     ax.set_ylim(-1, 5)
     fig.savefig(TESTDIR.joinpath("test_pulseseq.png"))
     ax.clear()
-    ax.reset()
     p.edit(index=0, phase=r"_y")
     ax.pseq(p)
 
@@ -83,16 +83,17 @@ def test_shaped_pulses():
     p = r"""
     p2 pl1 f1 sp=gauss tx=gauss ph1 tdy=-0.36 pdy0.2 ecr fcr al0.5
     p2 pl1 f2 sp=ramp_50 tx=rampup ph_x tdy=-0.2
-    p2 pl1 f1 sp=ramp_-50 tx=rampdown ph_new tkw={'fontsize':11} tdy-0.2
+    p2 pl1 f1 sp=ramp_-50 tx=rampdown ph_new tkw={'fontsize':10} tdy-0.2
     p2 pl0.5 f2 sp=tan_50 tx=tanup tdy=-0.05
-    p2 pl1 fH sp=tan_-20 tx=tandown
-    p2 pl1 f2 troff o sp=fid phrec pdy-0.2 ecg
+    p2 pl0.6 fH sp=tan_-50 tx=tandown tdy-0.05
+    p2 pl1 f2 troff o sp=fid phrec pdy-0.7 ecg
+    p2 pl-0.5 sp=grad f1 fck
+    p1 pl1 sp=sine f2 fcy
 
     """
     fig, ax = pplot()
-    ax.params = {"p2": 4, "d1": 0.2, "f1":0, "f2":2, "fH":-1}
+    ax.params = {"p2": 4, "d1": 0.2, "f1":0, "f2":2, "fH":0}
     ax.pseq(p)
-    ax.set_limits()
     fig.savefig(TESTDIR.joinpath("test_shaped_pulses.png"))
 
 

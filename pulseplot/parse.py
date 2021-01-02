@@ -65,8 +65,6 @@ def parse_base(instructions, params=None):
             if value := m[i]:
                 arguments[i] = value
 
-        # arguments = [i + j for i, j in zip(arguments, m)]
-
     # parse and pick up values + cast to appropriate types
     for arg, (param, param_info) in zip(arguments, PARAMS.items()):
         if arg:
@@ -545,9 +543,8 @@ class Shape(object):
         p = abs(percent) / 100
 
         tanshape = np.sinh((self.xscale - 0.5) / curvature)
-        tanshape /= np.max(tanshape)
-        tanshape += 1
-        tanshape *= p / 2
+        tanshape -= np.min(tanshape)
+        tanshape /= np.max(tanshape) / p
         tanshape += 1 - p
 
         if percent > 0:
@@ -564,5 +561,21 @@ class Shape(object):
         if decay is None:
             decay = 5
 
+        return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
 
-        return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real + 0.5
+    def grad(self, rise, *args, **kwargs):
+        if rise is None:
+            rise = 8
+
+        gradfx = np.exp(-((self.xscale - 0.5) ** rise) / 0.5 ** rise)
+        gradfx -= np.min(gradfx)
+
+        return gradfx / np.max(gradfx)
+
+    def sine(self, *args, **kwargs):
+
+        x = np.linspace(0, np.pi, self.npoints)
+        return np.sin(x)
+
+    def grad2(self, *args, **kwargs):
+        return self.sine(*args, **kwargs)
