@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 EXAMPLES_DIR = Path(__file__).parent
 
 p = r"""
-p1 pl1 ph1 fH pdy0.05 fck
+p1 pl1 ph1 fH pdy0.05 
 p2 pl0.6 ph_X fH sp=ramp_50 w txCP tdy-0.08 pdy-0.1
 p2 pl0.5 ph2 fX txCP pdy0.05
 p3 pl0.8 fH w h//

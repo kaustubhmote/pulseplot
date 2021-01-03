@@ -13,7 +13,7 @@ def test_pulse_1():
     ax.pulse("p1 pl1 ph1 f1 fck")
     ax.pulse("p2 pl2 ph2 f1 fcr h//")
     ax.pulse("p1 pl1 ph_x f0 fcg h||", shape=lambda x: np.exp(-((x - 0.5) ** 2) / 0.05))
-    ax.pulse("p3 pl0.4 f1 ecr fcr al0.2", text="A long Pulse text")
+    ax.pulse("p3 pl0.4 f1 ecr fcr al0.2 tfs12", text="A long Pulse text")
     ax.pulse(
         "p1 pl-0.5 f1 fcb al0.5 spg",
         text="shaded",
@@ -21,9 +21,6 @@ def test_pulse_1():
     )
     ax.pulse("p2 pl0.5 f1 spfid ecr o troff", facecolor="none")
     ax.pulse("p1 pl1 f2 st8 sp=gauss")
-
-    ax.set_xlim(0, 11)
-    ax.set_ylim(0, 3)
 
     fig.savefig(TESTDIR.joinpath("test_pulse_1.png"))
 
@@ -35,8 +32,6 @@ def test_pulse_delay():
     ax.pulse(r"p1 pl1 ph1 f1 fck")
     ax.delay(r"d2 tx$\tau$ f1")
     ax.fid(r"p2 pl0.5 f1")
-    ax.set_xlim(0, 11)
-    ax.set_ylim(0, 3)
     fig.savefig(TESTDIR.joinpath("test_pulse_delay.png"))
 
 
@@ -62,22 +57,13 @@ def test_pulseseq():
     p.edit(name="H90", facecolor="r")
     ax.spacing = 0.05
     ax.phase_dy = 0.2
-    ax.fontsize = 15
-    # ax.text_dy = 1
+    ax.fontsize = 13
     ax.pseq(p)
-    ax.set_xlim(-1, 15)
-    ax.set_ylim(-1, 5)
-    fig.savefig(TESTDIR.joinpath("test_pulseseq.png"))
+    fig.savefig(TESTDIR.joinpath("test_pulseseq_1.png"))
     ax.clear()
     p.edit(index=0, phase=r"_y")
     ax.pseq(p)
-
-    ax.set_xlim(-1, 15)
-    ax.set_ylim(-1, 5)
-
-    print(ax.texts[1].remove())
-
-    fig.savefig(TESTDIR.joinpath("test_pulseseq.png"))
+    fig.savefig(TESTDIR.joinpath("test_pulseseq_2.png"))
 
 
 def test_shaped_pulses():

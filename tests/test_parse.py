@@ -36,6 +36,7 @@ def test_parse_base_1():
         "s": "$\\phi_{1}$",
         "ha": "center",
         "va": "center",
+        "fontsize": 15.0,
     }
 
     pX * 2
