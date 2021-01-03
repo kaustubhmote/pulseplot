@@ -73,10 +73,10 @@ class PulseProgram(plt.Axes):
             p = Pulse(*args, **kwargs, external_params=self.params)
 
         if p.defer_start_time:
-            p.start_time = self.time
-            p.start_time += self.spacing
-            p.plen -= self.spacing
-            self.time = p.end_time()
+            p.start_time = self.time + self.spacing
+            p.plen -= 2 * self.spacing
+            if not p.wait:
+                self.time = p.end_time() + 2 * self.spacing
 
         p.text_dy += self.text_dy
         p.phtxt_dy += self.phase_dy
@@ -97,7 +97,7 @@ class PulseProgram(plt.Axes):
         )
 
         p.start_time -= self.spacing
-        p.plen += self.spacing
+        p.plen += 2 * self.spacing
 
         try:
             super().text(**p.label_params())
@@ -153,16 +153,31 @@ class PulseProgram(plt.Axes):
         self.time = 0.0
         super().clear()
 
-    def draw_channels(self, limits=None, color="k", **kwargs):
+    def draw_channels(self, *args, **kwargs):
         """
         Draws lines marking the channels
 
         """
-        for i in self.channels:
-            if limits is None:
-                super().plot([0, self.time], [i, i], color=color, **kwargs)
+        defaults = {"color": "k", "linewidth": 1.0}
+
+        try:
+            x0, x1 = kwargs["limits"]
+            kwargs.pop("limits")
+        except KeyError:
+            x0, x1 = self.limits["xlow"], self.limits["xhigh"]
+
+        defaults = {**defaults, **kwargs}
+
+        for channel in args:
+            if channel in self.params.keys():
+                super().hlines(self.params[channel], x0, x1, **defaults)
             else:
-                super().plot(limits, [i, i], color=color, **kwargs)
+                try:
+                    super().hlines(channel, x0, x1, **defaults)
+                except ValueError:
+                    raise ValueError(
+                        "Channel must be present in parameters, or must be a number"
+                    )
 
     def pseq(self, instruction):
         """
