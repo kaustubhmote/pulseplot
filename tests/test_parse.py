@@ -2,9 +2,9 @@ from pulseplot.parse import PARAMS, Delay, Pulse, PulseSeq, parse_base
 
 test_string = r"""p1 pl1 ph1 f2
 d1 f1 tx$\\tau$
-d1 f1 txTEST tdx0.1 tdy0.3
+d1 f1 tx=TEST tdx0.1 tdy0.3
 p1 pl1 ph1 f8 fcr ecg al0.33
-p3 pl4 ph_x f0
+p3 pl4 ph_x f0 tx`text with spaces`
 p2.6 pl5 ph2 phpdx0.1 phpdy0.2
 """
 
@@ -78,6 +78,11 @@ def test_parse_base_4():
     assert out["plen"] == 3.0
     assert out["power"] == 4.0
     assert out["phase"] == "_x"
+    assert out["text"] == "`text with spaces`"
+    
+    p = Pulse(test_string_splitted[4])
+    assert p.text == "text with spaces"
+
 
 
 def test_shape():
@@ -121,3 +126,6 @@ def test_pulse_seq():
         "ha": "center",
         "va": "center",
     }
+
+if __name__ == "__main__":
+    test_parse_base_4()

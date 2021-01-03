@@ -14,33 +14,33 @@ PAR = namedtuple("parameters", ["name", "type", "default", "pattern", "parents"]
 
 # fmt: off
 PARAMS = {
-    "p":     PAR("plen",            float,  None,     r"(p=?[^lhdkf ]+)?",  ["pulse"],),
-    "pl":    PAR("power",           float,  None,     r"(pl=?[^ ]+)?",      ["pulse"],),
-    "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",      ["pulse"],),
-    "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",      ["pulse"],),
-    "w":     PAR("wait",            bool,   False,    r"(w)?",              ["pulse"],),
-    "c":     PAR("centered",        bool,   False,    r"(c[^l])?",          ["pulse"],),
-    "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",             ["pulse"],),
-    "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",      ["pulse"],),
-    "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",      ["pulse"],),
-    "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",      ["pulse"],),
-    "h":     PAR("hatch",           str,    "",       r"(h=?[^ ]+)?",       ["pulse"],),
-    "tr":    PAR("truncate_off",    bool,   False,    r"(troff)?",          ["pulse"],),
-    "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",     ["pulse"],),
-    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",     ["pulse"],),
-    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",     ["pulse"],),
-    "pfs":   PAR("ph_fontsize",     float,  15.0,     r"(pfs=?[^ ]+)?",     ["pulse"],),
-    "pkw":   PAR("phase_kw",        str,   "{}",      r"(pkw=?{.*?})?",     ["pulse"],),
-    "o":     PAR("open",            bool,   False,    r"(o)?",              ["pulse"],),  
-    "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",       ["delay"],),
-    "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",      ["pulse", "delay"],),
-    "f":     PAR("channel",         float,  None,     r"(f=?[^c ]+)?",      ["pulse", "delay"],),
-    "tx":    PAR("text",            str,    None,     r"(tx=?[^ ]+)?",      ["pulse", "delay"],),
-    "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",     ["pulse", "delay"],),
-    "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",     ["pulse", "delay"],),
-    "tkw":   PAR("text_kw",         str,   "{}",      r"(tkw=?{.*?})?",     ["pulse", "delay"],),
-    "tfs":   PAR("text_fontsize",   float,  15.0,     r"(tfs=?[^ ]+)?",     ["pulse", "delay"],),
-    "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",      ["pulse", "delay"],),
+    "p":     PAR("plen",            float,  None,     r"(p=?[^lhdkf ]+)?",              ["pulse"],),
+    "pl":    PAR("power",           float,  None,     r"(pl=?[^ ]+)?",                  ["pulse"],),
+    "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",                  ["pulse"],),
+    "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",                  ["pulse"],),
+    "w":     PAR("wait",            bool,   False,    r"(w)?",                          ["pulse"],),
+    "c":     PAR("centered",        bool,   False,    r"(c[^l])?",                      ["pulse"],),
+    "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",                         ["pulse"],),
+    "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",                  ["pulse"],),
+    "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",                  ["pulse"],),
+    "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",                  ["pulse"],),
+    "h":     PAR("hatch",           str,    "",       r"(h=?[^ ]+)?",                   ["pulse"],),
+    "tr":    PAR("truncate_off",    bool,   False,    r"(troff)?",                      ["pulse"],),
+    "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",                 ["pulse"],),
+    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",                 ["pulse"],),
+    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",                 ["pulse"],),
+    "pfs":   PAR("ph_fontsize",     float,  15.0,     r"(pfs=?[^ ]+)?",                 ["pulse"],),
+    "pkw":   PAR("phase_kw",        str,   "{}",      r"(pkw=?{.*?})?",                 ["pulse"],),
+    "o":     PAR("open",            bool,   False,    r"(o)?",                          ["pulse"],),  
+    "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",                   ["delay"],),
+    "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",                  ["pulse", "delay"],),
+    "f":     PAR("channel",         float,  None,     r"(f=?[^c ]+)?",                  ["pulse", "delay"],),
+    "tx":    PAR("text",            str,    None,     r"(tx[^`]=?[^ ]+|tx=?`.*?`)?",    ["pulse", "delay"],),
+    "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",                 ["pulse", "delay"],),
+    "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",                 ["pulse", "delay"],),
+    "tkw":   PAR("text_kw",         str,   "{}",      r"(tkw=?{.*?})?",                 ["pulse", "delay"],),
+    "tfs":   PAR("text_fontsize",   float,  15.0,     r"(tfs=?[^ ]+)?",                 ["pulse", "delay"],),
+    "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",                  ["pulse", "delay"],),
 }
 # fmt: on
 
@@ -145,7 +145,7 @@ class Pulse(object):
         else:
             self.defer_start_time = False
 
-        for k, v in PARAMS.items():
+        for _, v in PARAMS.items():
             if "pulse" not in v.parents:
                 args.pop(v.name)
 
@@ -159,6 +159,12 @@ class Pulse(object):
 
             except json.decoder.JSONDecodeError as e:
                 raise ValueError(f"The input {args[item]} is not understood.")
+
+        try:
+            if args["text"].startswith("`") and args["text"].endswith("`"):
+                args["text"] = args["text"][1:-1]
+        except AttributeError:
+            pass
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
@@ -197,6 +203,7 @@ class Pulse(object):
         """
         xpos = self.start_time + self.plen / 2 + self.text_dx
         ypos = self.power / 2 + self.channel + self.text_dy
+        
 
         labelparams = {"x": xpos, "y": ypos, "s": self.text, "fontsize":self.text_fontsize}
 
