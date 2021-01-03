@@ -55,6 +55,7 @@ class PulseProgram(plt.Axes):
 
         super().__init__(*args, **kwargs)
 
+        self.center_align = False 
         self.spacing = 0.0
         self.phase_dy = 0.0
         self.text_dy = 0.0
@@ -92,8 +93,17 @@ class PulseProgram(plt.Axes):
         super().add_patch(pulse_patch)
 
         xarr, yarr = pulse_patch.xy[:, 0], pulse_patch.xy[:, 1]
+        
+        if self.center_align:
+            center = (yarr.min() + yarr.max()) / 2.0 - yarr.min()
+            yarr -= center 
+            pulse_patch.xy[:,1] = yarr 
+            
+            p.text_dy -= center
+            p.phtxt_dy -= center
+
         self.edit_limits(
-            xlow=min(xarr), xhigh=max(xarr), ylow=min(yarr), yhigh=max(yarr)
+            xlow=xarr.min(), xhigh=xarr.max(), ylow=yarr.min(), yhigh=yarr.max()
         )
 
         p.start_time -= self.spacing
@@ -158,7 +168,7 @@ class PulseProgram(plt.Axes):
         Draws lines marking the channels
 
         """
-        defaults = {"color": "k", "linewidth": 1.0}
+        defaults = {"color": "k", "linewidth": 1.0, "zorder":-1}
 
         try:
             x0, x1 = kwargs["limits"]

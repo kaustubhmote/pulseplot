@@ -581,6 +581,11 @@ class Shape(object):
 
         return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
 
+    def fid2(self, freq, decay, *args, **kwargs):
+        fid = self.fid(freq, decay, *args, **kwargs)
+        return fid + 0.25
+
+        return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
     def grad(self, rise, *args, **kwargs):
         """Gradient shape"""
         if rise is None:
