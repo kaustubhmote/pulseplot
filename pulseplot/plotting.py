@@ -55,14 +55,22 @@ class PulseProgram(plt.Axes):
 
         super().__init__(*args, **kwargs)
 
-        self.center_align = False 
+        self.center_align = False
         self.spacing = 0.0
         self.phase_dy = 0.0
         self.text_dy = 0.0
         self.fontsize = None
         self.time = 0.0
         self.params = {}
-        self.limits = {"xlow": 10, "xhigh": -10, "ylow": 10, "yhigh": -10}
+        self.limits = {
+            "xlow": 10,
+            "xhigh": -10,
+            "ylow": 10,
+            "yhigh": -10,
+            "dx": 0.1,
+            "dy": 0.1,
+        }
+
         self.set_limits()
 
     def pulse(self, *args, **kwargs):
@@ -93,12 +101,12 @@ class PulseProgram(plt.Axes):
         super().add_patch(pulse_patch)
 
         xarr, yarr = pulse_patch.xy[:, 0], pulse_patch.xy[:, 1]
-        
+
         if self.center_align:
             center = (yarr.min() + yarr.max()) / 2.0 - yarr.min()
-            yarr -= center 
-            pulse_patch.xy[:,1] = yarr 
-            
+            yarr -= center
+            pulse_patch.xy[:, 1] = yarr
+
             p.text_dy -= center
             p.phtxt_dy -= center
 
@@ -168,7 +176,7 @@ class PulseProgram(plt.Axes):
         Draws lines marking the channels
 
         """
-        defaults = {"color": "k", "linewidth": 1.0, "zorder":-1}
+        defaults = {"color": "k", "linewidth": 1.0, "zorder": -1}
 
         try:
             x0, x1 = kwargs["limits"]
@@ -215,20 +223,24 @@ class PulseProgram(plt.Axes):
             raise IndexError("limits should be given as [xlow, xhigh, ylow, yhigh]")
 
     def edit_limits(self, xlow=None, xhigh=None, ylow=None, yhigh=None):
-        
 
-        if (xlow is not None) and (xlow - 0.5 < self.limits["xlow"]):
-            self.limits["xlow"] = xlow - 0.5
+        dx, dy = self.limits["dx"], self.limits["dy"]
 
-        if (ylow is not None) and (ylow - 0.5 < self.limits["ylow"]):
-            self.limits["ylow"] = ylow - 0.5
+        if (xlow is not None) and (xlow - dx < self.limits["xlow"]):
+            self.limits["xlow"] = xlow - dx
 
-        if (xhigh is not None) and (xhigh + 0.5 > self.limits["xhigh"]):
-            self.limits["xhigh"] = xhigh + 0.5
+        if (ylow is not None) and (ylow - dy < self.limits["ylow"]):
+            self.limits["ylow"] = ylow - dy
 
-        if (yhigh is not None) and (yhigh + 0.5 > self.limits["yhigh"]):
-            self.limits["yhigh"] = yhigh + 0.5
-        
+        if (xhigh is not None) and (xhigh + dx > self.limits["xhigh"]):
+            self.limits["xhigh"] = xhigh + dx
+
+        if (yhigh is not None) and (yhigh + dy > self.limits["yhigh"]):
+            self.limits["yhigh"] = yhigh + dy
+
+
+        self.limits["dx"] = (self.limits["xhigh"] - self.limits["xlow"]) / 50
+        self.limits["dy"] = (self.limits["yhigh"] - self.limits["ylow"]) / 50
 
         self.set_limits()
 
