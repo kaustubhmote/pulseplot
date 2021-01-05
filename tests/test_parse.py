@@ -30,14 +30,8 @@ def test_parse_base_1():
     assert pX.plen == 1.0
     assert pX.power == 1.0
     assert pX.channel == 2.0
-    assert pX.phase_params() == {
-        "x": 0.5,
-        "y": 3.1,
-        "s": "$\\phi_{1}$",
-        "ha": "center",
-        "va": "center",
-        "fontsize": 15.0,
-    }
+    assert pX.phase_params()["y"] == 3.15
+    assert pX.phase_params()["x"] - 0.494949494 < 1e-2
 
     pX * 2
     assert pX.plen == 2.0

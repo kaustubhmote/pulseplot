@@ -184,8 +184,10 @@ class Pulse(object):
         else:
             text = fr"$\phi_{{{self.phase}}}$"
 
-        xpos = self.start_time + self.plen / 2 + self.phtxt_dx
-        ypos = self.channel + self.power + 0.1 + self.phtxt_dy
+        p = self.patch()
+        center = int(self.npoints // 2)
+        xpos = p.xy[:, 0][center] + self.phtxt_dx
+        ypos = p.xy[:, 1][center] + self.phtxt_dy + 0.15
 
         phtxtparams = {"x": xpos, "y": ypos, "s": text, "fontsize": self.ph_fontsize}
 
@@ -201,11 +203,20 @@ class Pulse(object):
         by the kwargs passed to this function.
 
         """
-        xpos = self.start_time + self.plen / 2 + self.text_dx
-        ypos = self.power / 2 + self.channel + self.text_dy
-        
+        p = self.patch()
+        center = int(self.npoints // 2)
+        xpos = p.xy[:, 0][center] + self.text_dx
+        ypos = p.xy[:, 1][center] / 2 + p.xy[:, 1].min() / 2 + self.text_dy 
 
-        labelparams = {"x": xpos, "y": ypos, "s": self.text, "fontsize":self.text_fontsize}
+        # xpos = self.start_time + self.plen / 2 + self.text_dx
+        # ypos = self.power / 2 + self.channel + self.text_dy
+
+        labelparams = {
+            "x": xpos,
+            "y": ypos,
+            "s": self.text,
+            "fontsize": self.text_fontsize,
+        }
 
         return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
 
@@ -487,6 +498,7 @@ class PulseSeq(object):
 
 
 class Shape(object):
+    """ Pulse shapes """
 
     def __init__(self, name, npoints):
         """shape object with a name and the number of points"""
@@ -515,6 +527,15 @@ class Shape(object):
 
         return new_pars
 
+    def normalize(self, array, high=1, low=0):
+
+        array -= array.min()
+        array /= array.max()
+        array *= (high - low)
+        array += low
+
+        return array
+
     def get_shape(self):
         """Returns the shape after introspecting the passed parameters"""
         try:
@@ -536,7 +557,9 @@ class Shape(object):
         if sigma is None:
             sigma = 1 / 6.0
 
-        return np.exp(-((self.xscale - x0) ** 2) / 2 / sigma ** 2)
+        s = np.exp(-((self.xscale - x0) ** 2) / 2 / sigma ** 2)
+
+        return self.normalize(s)
 
     def ramp(self, percent, *args, **kwargs):
         """Linear ramp"""
@@ -558,16 +581,13 @@ class Shape(object):
             curvature = 0.1
 
         p = abs(percent) / 100
-
-        tanshape = np.sinh((self.xscale - 0.5) / curvature)
-        tanshape -= np.min(tanshape)
-        tanshape /= np.max(tanshape) / p
-        tanshape += 1 - p
+        s = np.sinh((self.xscale - 0.5) / curvature)
+        s = self.normalize(s, high=1, low=1-p)
 
         if percent > 0:
-            return tanshape
+            return s
         else:
-            return tanshape[::-1]
+            return s[::-1]
 
     def fid(self, freq, decay, *args, **kwargs):
         """Free induction decay"""
@@ -579,27 +599,32 @@ class Shape(object):
         if decay is None:
             decay = 5
 
-        return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
+        s = np.exp(1j * freq * self.xscale - decay * self.xscale).real
+
+        return self.normalize(s, high=1.0, low=0.0)
+
 
     def fid2(self, freq, decay, *args, **kwargs):
-        fid = self.fid(freq, decay, *args, **kwargs)
-        return fid + 0.25
+        """A shifted fid"""
+
+        s = self.fid(freq, decay, *args, **kwargs)
+        return self.normalize(s, high=0.5, low=-0.5)
 
         return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
+
     def grad(self, rise, *args, **kwargs):
         """Gradient shape"""
         if rise is None:
             rise = 8
 
-        gradfx = np.exp(-((self.xscale - 0.5) ** rise) / 0.5 ** rise)
-        gradfx -= np.min(gradfx)
+        s = np.exp(-((self.xscale - 0.5) ** rise) / 0.5 ** rise)
 
-        return gradfx / np.max(gradfx)
+        return self.normalize(s)
 
     def sine(self, *args, **kwargs):
         """Single sine shape"""
-
         x = np.linspace(0, np.pi, self.npoints)
+
         return np.sin(x)
 
     def grad2(self, *args, **kwargs):

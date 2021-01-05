@@ -62,7 +62,7 @@ class PulseProgram(plt.Axes):
         self.fontsize = None
         self.time = 0.0
         self.params = {}
-        self.limits = {"xlow": 0.9, "xhigh": 2, "ylow": -0.1, "yhigh": 2}
+        self.limits = {"xlow": 10, "xhigh": -10, "ylow": 10, "yhigh": -10}
         self.set_limits()
 
     def pulse(self, *args, **kwargs):
@@ -215,6 +215,7 @@ class PulseProgram(plt.Axes):
             raise IndexError("limits should be given as [xlow, xhigh, ylow, yhigh]")
 
     def edit_limits(self, xlow=None, xhigh=None, ylow=None, yhigh=None):
+        
 
         if (xlow is not None) and (xlow - 0.5 < self.limits["xlow"]):
             self.limits["xlow"] = xlow - 0.5
@@ -227,6 +228,7 @@ class PulseProgram(plt.Axes):
 
         if (yhigh is not None) and (yhigh + 0.5 > self.limits["yhigh"]):
             self.limits["yhigh"] = yhigh + 0.5
+        
 
         self.set_limits()
 
