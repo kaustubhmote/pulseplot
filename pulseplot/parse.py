@@ -152,6 +152,7 @@ class Pulse(object):
         # handle keywords from string
         for item in ["phase_kw", "text_kw"]:
             try:
+                # maybe json needs to be replaced with ast.literal_eval?
                 args[item] = json.loads(args[item])
 
             except json.decoder.JSONDecodeError:

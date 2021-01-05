@@ -211,6 +211,29 @@ class PulseProgram(plt.Axes):
             elif isinstance(item, Delay):
                 self.delay(item)
 
+        self.sequence = instruction
+
+    def get_time(self, name=None, index=None):
+
+        if name is not None:
+            try:
+                index_ = self.sequence.named_elements[name]
+                x = self.sequence.elements[index_].start_time
+            except KeyError:
+                raise KeyError(f"Cannot find the element named {name}")
+
+        elif index is not None:
+            try:
+                x = self.sequence.elements[index].start_time
+            except KeyError:
+                raise KeyError(f"Cannot find the element named {name}")
+
+        else:
+            raise ValueError("Either a name of a index must be supplied")
+
+        return x
+        
+
     def set_limits(self, limits=None):
 
         if limits is not None:
