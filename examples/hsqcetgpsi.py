@@ -1,5 +1,5 @@
 from pathlib import Path
-from pulseplot import pplot
+import pulseplot as pplot
 
 EXAMPLES_DIR = Path(__file__).parent
 
@@ -15,6 +15,7 @@ p2 pl1 f1
 p2 pl0.2 f0 sp=grad fc=grey 
 d1 f2 tx=$\tau$ tdx-0.1
 p1 pl1 ph_y f2 fc=k
+p0.5 pl0.23 sp=gauss fc=lightblue f2 ph_-x
 p2 pl0.2 f0 sp=grad fc=grey 
 p1 pl1 ph_$\phi^{*}$ f1 fc=k
 
@@ -53,14 +54,14 @@ p1.1 pl1 f2 sp=fid_20 phrec troff o np=200 pdy=0.1
 
 """
 
-fig, ax = pplot(figsize=(8, 2.5), constrained_layout=True)
+fig, ax = pplot.subplots(figsize=(8, 2.5), constrained_layout=True)
 
-ax.params = {"p1": 0.1, "p2": 0.2, "d1": 0.6, "d2": 0.05, "pl1": 0.5, "f0": 0.4}
+ax.params = {"p1": 0.1, "p2": 0.2, "d1": 0.6, "d2": 0.05, "pl1": 0.5, "pl0.2": 0.4}
 ax.fontsize = 13
 
 ax.pseq(p)
 ax.axis(False)
-ax.draw_channels(1, 2)
+ax.draw_channels(0, 1, 2)
 
 x = ax.get_time(name="t1end")
 ax.vlines(x, 1.5, 1, linestyle="--", color="k", linewidth=1)

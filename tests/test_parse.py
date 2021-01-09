@@ -1,4 +1,4 @@
-from pulseplot.parse import PARAMS, Delay, Pulse, PulseSeq, parse_base
+from pulseplot import PARAMS, Delay, Pulse, PulseSeq, parse_base
 
 test_string = r"""p1 pl1 ph1 f2
 d1 f1 tx$\\tau$

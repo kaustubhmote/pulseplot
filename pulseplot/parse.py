@@ -207,7 +207,7 @@ class Pulse(object):
         p = self.patch()
         center = int(self.npoints // 2)
         xpos = p.xy[:, 0][center] + self.text_dx
-        ypos = p.xy[:, 1][center] / 2 + p.xy[:, 1].min() / 2 + self.text_dy 
+        ypos = p.xy[:, 1][center] / 2 + p.xy[:, 1].min() / 2 + self.text_dy
 
         # xpos = self.start_time + self.plen / 2 + self.text_dx
         # ypos = self.power / 2 + self.channel + self.text_dy
@@ -532,7 +532,7 @@ class Shape(object):
 
         array -= array.min()
         array /= array.max()
-        array *= (high - low)
+        array *= high - low
         array += low
 
         return array
@@ -583,7 +583,7 @@ class Shape(object):
 
         p = abs(percent) / 100
         s = np.sinh((self.xscale - 0.5) / curvature)
-        s = self.normalize(s, high=1, low=1-p)
+        s = self.normalize(s, high=1, low=1 - p)
 
         if percent > 0:
             return s
@@ -604,14 +604,10 @@ class Shape(object):
 
         return self.normalize(s, high=1.0, low=0.0)
 
-
     def fid2(self, freq, decay, *args, **kwargs):
         """A shifted fid"""
-
         s = self.fid(freq, decay, *args, **kwargs)
         return self.normalize(s, high=0.5, low=-0.5)
-
-        return 0.5 * np.exp(1j * freq * self.xscale - decay * self.xscale).real
 
     def grad(self, rise, *args, **kwargs):
         """Gradient shape"""

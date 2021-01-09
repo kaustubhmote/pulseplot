@@ -2,14 +2,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pulseplot import pplot
-from pulseplot.parse import Pulse, PulseSeq
+import pulseplot as pplot
+from pulseplot import PulseSeq
 
 TESTDIR = Path(__file__).parent
 
 
 def test_pulse_1():
-    fig, ax = pplot()
+    fig, ax = pplot.subplots()
     ax.pulse("p1 pl1 ph1 f1 fck")
     ax.pulse("p2 pl2 ph2 f1 fcr h//")
     ax.pulse("p1 pl1 ph_x f0 fcg h||", shape=lambda x: np.exp(-((x - 0.5) ** 2) / 0.05))
@@ -26,7 +26,7 @@ def test_pulse_1():
 
 
 def test_pulse_delay():
-    fig, ax = pplot()
+    fig, ax = pplot.subplots()
     ax.pulse(r"p1 pl1 ph1 f1 fck")
     ax.delay(r"d2 tx$\tau$ f1")
     ax.pulse(r"p1 pl1 ph1 f1 fck")
@@ -51,7 +51,7 @@ def test_pulseseq():
     """
 
 
-    fig, ax = pplot()
+    fig, ax = pplot.subplots()
     ax.params = {"p1": 0.2, "pl1": 1, "p2": 0.3, "f1": 0, "f2": 2}
     p = PulseSeq(p, external_params=ax.params)
     p.edit(name="H90", facecolor="r")
@@ -77,7 +77,7 @@ def test_shaped_pulses():
     p1 pl1 sp=sine f2 fcy
 
     """
-    fig, ax = pplot()
+    fig, ax = pplot.subplots()
     ax.fontsize = 11
     ax.params = {"p2": 4, "d1": 0.2, "f1":0, "f2":2, "fH":0}
     ax.pseq(p)

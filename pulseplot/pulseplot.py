@@ -2,15 +2,16 @@
 Utilities for making plots
 
 """
+from warnings import warn
 import matplotlib.pyplot as plt
 from matplotlib.projections import register_projection
 
 from .parse import Delay, Pulse, PulseSeq
 
 
-def pplot(*args, **kwargs):
+def subplots(*args, **kwargs):
     """
-    Wrapper around matplotlib.pyplot
+    Wrapper around matplotlib.pyplot.subplots
     Automatically incorporates the PulseProgram projection
     in subplot keywords
 
@@ -18,13 +19,55 @@ def pplot(*args, **kwargs):
     register_projection(PulseProgram)
 
     if "subplot_kw" in kwargs.keys():
+
+        if "projection" in kwargs["subplot_kw"]:
+            warn(f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}")
+
         kwargs["subplot_kw"]["projection"] = "PulseProgram"
+
     else:
         kwargs["subplot_kw"] = {"projection": "PulseProgram"}
 
     fig, ax = plt.subplots(*args, **kwargs)
 
     return fig, ax
+
+
+def subplot_mosaic(*args, **kwargs):
+    """
+    Wrapper around matplotlib.pyplot.subplot_mosiac
+    Automatically incorporates the PulseProgram projection
+    in subplot keywords
+
+    """
+    register_projection(PulseProgram)
+
+    if "subplot_kw" in kwargs.keys():
+
+        if "projection" in kwargs["subplot_kw"]:
+            warn(f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}")
+
+        kwargs["subplot_kw"]["projection"] = "PulseProgram"
+
+    else:
+        kwargs["subplot_kw"] = {"projection": "PulseProgram"}
+
+    fig, ax = plt.subplot_mosaic(*args, **kwargs)
+
+    return fig, ax    
+
+
+def show(*args, **kwargs):
+    """
+    Calls matplotlib.pyplot.show
+    This is just to avoid the import
+    of matploltib.pyplot while making
+    pulse diagrams. 
+    
+    """
+    plt.show(*args, **kwargs)
+
+    return
 
 
 class PulseProgram(plt.Axes):

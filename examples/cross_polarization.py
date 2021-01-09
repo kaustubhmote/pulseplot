@@ -1,5 +1,5 @@
 from pathlib import Path
-from pulseplot import pplot
+import pulseplot as pplot
 
 EXAMPLES_DIR = Path(__file__).parent
 
@@ -10,7 +10,7 @@ p1 pl0.5 ph2 f1 tx=CP
 p1 pl0.8 f2 w fc=lightgrey tx=decoupling
 p1 pl0.5 sp=fid_20 f1 fc=none troff o phrec ecr np200"""
 
-fig, ax = pplot(ncols=2, figsize=(10, 4), constrained_layout=True)
+fig, ax = pplot.subplots(ncols=2, figsize=(10, 4), constrained_layout=True)
 
 ax[1].center_align = True  # default is False
 
