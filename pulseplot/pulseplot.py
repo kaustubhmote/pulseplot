@@ -21,7 +21,9 @@ def subplots(*args, **kwargs):
     if "subplot_kw" in kwargs.keys():
 
         if "projection" in kwargs["subplot_kw"]:
-            warn(f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}")
+            warn(
+                f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}"
+            )
 
         kwargs["subplot_kw"]["projection"] = "PulseProgram"
 
@@ -45,7 +47,9 @@ def subplot_mosaic(*args, **kwargs):
     if "subplot_kw" in kwargs.keys():
 
         if "projection" in kwargs["subplot_kw"]:
-            warn(f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}")
+            warn(
+                f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}"
+            )
 
         kwargs["subplot_kw"]["projection"] = "PulseProgram"
 
@@ -54,7 +58,7 @@ def subplot_mosaic(*args, **kwargs):
 
     fig, ax = plt.subplot_mosaic(*args, **kwargs)
 
-    return fig, ax    
+    return fig, ax
 
 
 def show(*args, **kwargs):
@@ -62,8 +66,8 @@ def show(*args, **kwargs):
     Calls matplotlib.pyplot.show
     This is just to avoid the import
     of matploltib.pyplot while making
-    pulse diagrams. 
-    
+    pulse diagrams.
+
     """
     plt.show(*args, **kwargs)
 
@@ -73,12 +77,12 @@ def show(*args, **kwargs):
 class PulseProgram(plt.Axes):
     """
     A class that defines convinience functions for
-    plotting elements of a NMR pulse squence on a 
+    plotting elements of a NMR pulse squence on a
     matplotlib axes object.
 
     Usage
     -----
-    >>> from pulseplot import pplot 
+    >>> from pulseplot import pplot
     >>> fig, ax = pplot()
     >>> ax.params["p1"] = 0.5
     >>> ax.pulse("p1 pl1 ph1 f1")
@@ -242,8 +246,8 @@ class PulseProgram(plt.Axes):
 
     def pseq(self, instruction):
         """
-        Main way in which 
-        
+        Main way in which
+
         """
         if isinstance(instruction, str):
             instruction = PulseSeq(instruction, external_params=self.params)
@@ -275,7 +279,6 @@ class PulseProgram(plt.Axes):
             raise ValueError("Either a name of a index must be supplied")
 
         return x
-        
 
     def set_limits(self, limits=None):
 
@@ -304,9 +307,7 @@ class PulseProgram(plt.Axes):
         if (yhigh is not None) and (yhigh + dy > self.limits["yhigh"]):
             self.limits["yhigh"] = yhigh + dy
 
-
         self.limits["dx"] = (self.limits["xhigh"] - self.limits["xlow"]) / 50
         self.limits["dy"] = (self.limits["yhigh"] - self.limits["ylow"]) / 50
 
         self.set_limits()
-

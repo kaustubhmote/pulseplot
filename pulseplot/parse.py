@@ -117,7 +117,10 @@ class Pulse(object):
     """
 
     def __init__(
-        self, *args, external_params={}, **params,
+        self,
+        *args,
+        external_params={},
+        **params,
     ):
         """TODO: to be defined.
 
@@ -224,7 +227,7 @@ class Pulse(object):
     def __mul__(self, constant):
         """
         Increases the pulse length by a given factor
-        
+
         """
         try:
             self.plen *= constant
@@ -234,7 +237,7 @@ class Pulse(object):
     def __add__(self, constant):
         """
         Adds a constant to the pulse length
-        
+
         """
         try:
             self.plen += constant
@@ -244,7 +247,7 @@ class Pulse(object):
     def __pow__(self, constant):
         """
         Multiplies the power of a pulse by a constant
-        
+
         """
         try:
             self.power *= constant
@@ -270,7 +273,7 @@ class Pulse(object):
     def time_array(self):
         """
         Gets the x-axis for the pulse
-        
+
         """
         if self.centered:
             start = self.start_time - self.plen / 2
@@ -305,9 +308,9 @@ class Pulse(object):
 
     def patch(self, **kwargs):
         """
-        Gets the matplotlib.patches.Polygon patch for the pulse 
+        Gets the matplotlib.patches.Polygon patch for the pulse
         to be added on to an matplotlib Axes object
-                
+
         """
         x = self.time_array()
         y = self.get_shape()
@@ -339,7 +342,7 @@ class Pulse(object):
 
     def render(self, ax, **kwargs):
         """
-        Adds a polygon patch of the pulse to the 
+        Adds a polygon patch of the pulse to the
         given axes object
 
         """
@@ -411,7 +414,12 @@ class Delay(object):
         xpos = self.start_time + self.time / 2 + self.text_dx
         ypos = self.channel + self.text_dy + 0.1
 
-        labelparams = {"x": xpos, "y": ypos, "s": self.text}
+        labelparams = {
+            "x": xpos,
+            "y": ypos,
+            "s": self.text,
+            "fontsize": self.text_fontsize,
+        }
 
         return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
 
@@ -436,7 +444,9 @@ class PulseSeq(object):
     """Docstring for PulseSeq. """
 
     def __init__(
-        self, sequence, external_params={},
+        self,
+        sequence,
+        external_params={},
     ):
         """TODO: to be defined.
 
