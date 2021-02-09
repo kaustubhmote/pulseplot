@@ -15,7 +15,7 @@ PAR = namedtuple("parameters", ["name", "type", "default", "pattern", "parents"]
 # fmt: off
 PARAMS = {
     "p":     PAR("plen",            float,  None,     r"(p=?[^lhdkf ]+)?",              ["pulse"],),
-    "pl":    PAR("power",           float,  None,     r"(pl=?[^ ]+)?",                  ["pulse"],),
+    "pl":    PAR("power",           float,  1.0,      r"(pl=?[^ ]+)?",                  ["pulse"],),
     "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",                  ["pulse"],),
     "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",                  ["pulse"],),
     "w":     PAR("wait",            bool,   False,    r"(w)?",                          ["pulse"],),
@@ -34,7 +34,7 @@ PARAMS = {
     "o":     PAR("open",            bool,   False,    r"(o)?",                          ["pulse"],),  
     "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",                   ["delay"],),
     "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",                  ["pulse", "delay"],),
-    "f":     PAR("channel",         float,  None,     r"(f=?[^c ]+)?",                  ["pulse", "delay"],),
+    "f":     PAR("channel",         float,  0.0,      r"(f=?[^c ]+)?",                  ["pulse", "delay"],),
     "tx":    PAR("text",            str,    None,     r"(tx[^`]=?[^ ]+|tx=?`.*?`)?",    ["pulse", "delay"],),
     "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",                 ["pulse", "delay"],),
     "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",                 ["pulse", "delay"],),

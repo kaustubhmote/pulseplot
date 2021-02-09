@@ -48,7 +48,7 @@ def test_parse_base_2():
 
     _check_allowed_parameters(out)
     assert out["plen"] is None
-    assert out["power"] is None
+    assert out["power"] == 1.0
     assert out["text"] == r"$\\tau$"
     assert out["time"] == 1.0
 
