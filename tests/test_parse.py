@@ -119,6 +119,7 @@ def test_pulse_seq():
         "s": "$\\\\tau$",
         "ha": "center",
         "va": "center",
+        "fontsize": 15,
     }
 
 if __name__ == "__main__":
