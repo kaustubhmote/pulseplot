@@ -60,7 +60,7 @@ python -m pip install -r requirements.txt
 ### The basics:
 
 ```python
->>> from pulseplot import pplot
+>>> import pulseplot as pplot
 >>> fig, ax = pplot.subplots()
 >>> ax.pulse(r"p1 pl1 ph1 f1")
 >>> ax.pulse(plen=1, power=1, phase=1, channel=1)
