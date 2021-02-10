@@ -73,10 +73,9 @@ def test_parse_base_4():
     assert out["power"] == 4.0
     assert out["phase"] == "_x"
     assert out["text"] == "`text with spaces`"
-    
+
     p = Pulse(test_string_splitted[4])
     assert p.text == "text with spaces"
-
 
 
 def test_shape():
@@ -114,13 +113,14 @@ def test_pulse_seq():
 
     assert pseq.elements[0].text_kw == {}
     assert pseq.elements[1].label_params() == {
-        "x": 0.5,
-        "y": 1.1,
+        "x": 0.494949494949495,
+        "y": 1.5,
         "s": "$\\\\tau$",
         "ha": "center",
         "va": "center",
-        "fontsize": 15,
+        "fontsize": 10,
     }
+
 
 if __name__ == "__main__":
     test_parse_base_4()

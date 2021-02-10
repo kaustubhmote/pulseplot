@@ -8,31 +8,32 @@ from warnings import warn
 import numpy as np
 from matplotlib.patches import Polygon
 
-TEXT_DEFAULTS = {"ha": "center", "va": "center"}
+PULSE_DEFAULTS = {"power": 1.0, "channel": 0.0}
+TEXT_DEFAULTS = {"fontsize": 10, "ha": "center", "va": "center"}
 
 PAR = namedtuple("parameters", ["name", "type", "default", "pattern", "parents"])
 
 # fmt: off
 PARAMS = {
     "p":     PAR("plen",            float,  None,     r"(p=?[^lhdkf ]+)?",              ["pulse"],),
-    "pl":    PAR("power",           float,  1.0,      r"(pl=?[^ ]+)?",                  ["pulse"],),
-    "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",                  ["pulse"],),
-    "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",                  ["pulse"],),
-    "w":     PAR("wait",            bool,   False,    r"(w)?",                          ["pulse"],),
-    "c":     PAR("centered",        bool,   False,    r"(c[^l])?",                      ["pulse"],),
-    "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",                         ["pulse"],),
-    "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",                  ["pulse"],),
-    "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",                  ["pulse"],),
-    "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",                  ["pulse"],),
-    "h":     PAR("hatch",           str,    "",       r"(h=?[^ ]+)?",                   ["pulse"],),
-    "tr":    PAR("truncate_off",    bool,   False,    r"(troff)?",                      ["pulse"],),
-    "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",                 ["pulse"],),
-    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",                 ["pulse"],),
-    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",                 ["pulse"],),
-    "pfs":   PAR("ph_fontsize",     float,  15.0,     r"(pfs=?[^ ]+)?",                 ["pulse"],),
-    "pkw":   PAR("phase_kw",        str,   "{}",      r"(pkw=?{.*?})?",                 ["pulse"],),
-    "o":     PAR("open",            bool,   False,    r"(o)?",                          ["pulse"],),  
-    "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",                   ["delay"],),
+    "pl":    PAR("power",           float,  1.0,      r"(pl=?[^ ]+)?",                  ["pulse", "delay"],),
+    "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",                  ["pulse", "delay"],),
+    "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",                  ["pulse", "delay"],),
+    "w":     PAR("wait",            bool,   False,    r"(w)?",                          ["pulse", "delay"],),
+    "c":     PAR("centered",        bool,   False,    r"(c[^l])?",                      ["pulse", "delay"],),
+    "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",                         ["pulse", "delay"],),
+    "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",                  ["pulse", "delay"],),
+    "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",                  ["pulse", "delay"],),
+    "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",                  ["pulse", "delay"],),
+    "h":     PAR("hatch",           str,    "",       r"(h=?[^ ]+)?",                   ["pulse", "delay"],),
+    "tr":    PAR("truncate_off",    bool,   False,    r"(troff)?",                      ["pulse", "delay"],),
+    "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",                 ["pulse", "delay"],),
+    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",                 ["pulse", "delay"],),
+    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",                 ["pulse", "delay"],),
+    "pfs":   PAR("ph_fontsize",     float,  15.0,     r"(pfs=?[^ ]+)?",                 ["pulse", "delay"],),
+    "pkw":   PAR("phase_kw",        str,   "{}",      r"(pkw=?{.*?})?",                 ["pulse", "delay"],),
+    "o":     PAR("open",            bool,   False,    r"(o)?",                          ["pulse", "delay"],),  
+    "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",                   ["delay",]),
     "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",                  ["pulse", "delay"],),
     "f":     PAR("channel",         float,  0.0,      r"(f=?[^c ]+)?",                  ["pulse", "delay"],),
     "tx":    PAR("text",            str,    None,     r"(tx[^`]=?[^ ]+|tx=?`.*?`)?",    ["pulse", "delay"],),
@@ -41,6 +42,7 @@ PARAMS = {
     "tkw":   PAR("text_kw",         str,   "{}",      r"(tkw=?{.*?})?",                 ["pulse", "delay"],),
     "tfs":   PAR("text_fontsize",   float,  15.0,     r"(tfs=?[^ ]+)?",                 ["pulse", "delay"],),
     "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",                  ["pulse", "delay"],),
+    "skw":   PAR("style_kw",        str,    "{}",     r"(skw=?{.*?})?",                 ["pulse", "delay"],),
 }
 # fmt: on
 
@@ -117,10 +119,7 @@ class Pulse(object):
     """
 
     def __init__(
-        self,
-        *args,
-        external_params={},
-        **params,
+        self, *args, external_params={}, **params,
     ):
         """TODO: to be defined.
 
@@ -153,7 +152,7 @@ class Pulse(object):
                 args.pop(v.name)
 
         # handle keywords from string
-        for item in ["phase_kw", "text_kw"]:
+        for item in ["phase_kw", "text_kw", "style_kw"]:
             try:
                 # maybe json needs to be replaced with ast.literal_eval?
                 args[item] = json.loads(args[item])
@@ -169,6 +168,11 @@ class Pulse(object):
                 args["text"] = args["text"][1:-1]
         except AttributeError:
             pass
+
+        if args["shape"] is not None:
+            if args["shape"].startswith("fid"):
+                args["truncate_off"] = True
+                args["open"] = True
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
@@ -332,6 +336,7 @@ class Pulse(object):
             "edgecolor": self.edgecolor,
             "hatch": self.hatch,
             "alpha": self.alpha,
+            **self.style_kw,
         }
 
         patch_params = {**patch_params, **kwargs}
@@ -352,7 +357,7 @@ class Pulse(object):
         return ax
 
 
-class Delay(object):
+class Delay(Pulse):
     """
     Dealy object with annotations
 
@@ -389,7 +394,7 @@ class Delay(object):
             if "delay" not in v.parents:
                 args.pop(v.name)
 
-        for item in ["text_kw"]:
+        for item in ["text_kw", "phase_kw", "style_kw"]:
             try:
                 args[item] = json.loads(args[item])
 
@@ -401,27 +406,10 @@ class Delay(object):
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
-    def label_params(self, **kwargs):
-        """
-        Generates a dictionary to be passed
-        into the ax.text function to put a tex
-        annotation at an appropriate location.
-        Generates x, y and s parameters from
-        the pulse parameters. Everything is overwritten
-        by the kwargs passed to this function.
-
-        """
-        xpos = self.start_time + self.time / 2 + self.text_dx
-        ypos = self.channel + self.text_dy + 0.1
-
-        labelparams = {
-            "x": xpos,
-            "y": ypos,
-            "s": self.text,
-            "fontsize": self.text_fontsize,
-        }
-
-        return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
+        self.plen = self.time
+        self.facecolor = "none"
+        self.edgecolor = "none"
+        self.power = PULSE_DEFAULTS["power"]
 
     def __mul__(self, constant):
         """Increases the delay by a given factor"""
@@ -444,9 +432,7 @@ class PulseSeq(object):
     """Docstring for PulseSeq. """
 
     def __init__(
-        self,
-        sequence,
-        external_params={},
+        self, sequence, external_params={},
     ):
         """TODO: to be defined.
 
@@ -463,6 +449,7 @@ class PulseSeq(object):
         if isinstance(sequence, str):
             self.input_string = sequence
             self.args = [i for i in sequence.split("\n") if i.strip()]
+            self.args = [i.split("#")[0] for i in self.args if i.split("#")[0]]
 
         elif isinstance(sequence, list):
             self.args = sequence
@@ -617,7 +604,8 @@ class Shape(object):
     def fid2(self, freq, decay, *args, **kwargs):
         """A shifted fid"""
         s = self.fid(freq, decay, *args, **kwargs)
-        return self.normalize(s, high=0.5, low=-0.5)
+        s += (np.random.random(self.npoints) - 0.5) * 0.1
+        return self.normalize(s, high=1.0, low=0.0)
 
     def grad(self, rise, *args, **kwargs):
         """Gradient shape"""

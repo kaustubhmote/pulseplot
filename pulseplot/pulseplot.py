@@ -119,6 +119,7 @@ class PulseProgram(plt.Axes):
         }
 
         self.set_limits()
+        self.axis(False)
 
     def pulse(self, *args, **kwargs):
 

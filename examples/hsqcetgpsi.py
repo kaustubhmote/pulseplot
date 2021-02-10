@@ -3,67 +3,102 @@ import pulseplot as pplot
 
 EXAMPLES_DIR = Path(__file__).parent
 
-p = r"""
-p1 pl1 ph f1 fck
-p2 pl0.2 sp=grad fc=grey f0
-d0.5
-p1 pl1 f2 fc=k
-d1 f2 tx=$\tau$ tdx=0.1
-p2 pl0.2 sp=grad fc=grey f0
-p2 pl1 f2 w
-p2 pl1 f1
-p2 pl0.2 f0 sp=grad fc=grey 
-d1 f2 tx=$\tau$ tdx-0.1
-p1 pl1 ph_y f2 fc=k
-p0.5 pl0.23 sp=gauss fc=lightblue f2 ph_-x
-p2 pl0.2 f0 sp=grad fc=grey 
-p1 pl1 ph_$\phi^{*}$ f1 fc=k
+# elements of hsqc
+grad = r"p1 pl0.5 sp=grad fc=grey f0"
+pH90 = r"p1 pl1 fc=black f2"
+pN90 = r"p1 pl1 fc=black f1"
+pH180 = r"p2 pl1 f2"
+pN180 = r"p2 pl1 f1"
+flipback = r"p5 pl0.5 sp=gauss fc=lightgrey f2"
+tau = r"d10 f2 tx=$\tau$"
 
-d1.1
-p2 pl1 ph f2 w
-d0.2 tx=$t_1$ f1
-d1.1
 
-d0.6 f1 tx=$\delta_1$ nt1end
-p2 pl1 f1
-d0.4 f1 tx=$\delta_1$ tdx=0.1
+# hsqc sequence
+hsqc = fr"""
+d5 tx=$^1H$ f2 w pl=0.5
+d5 tx=$^{{15}}N$ f1 w
+d5 tx=Grad f0 tdy-0.2
+d5
 
-p2 pl0.3 f0 sp=grad fc=lightblue
-p1 pl1 f1 ph1 fc=k w
-p1 pl1 f2 fc=k
-d1 f1 tx=$\tau$ tdx=0.1
-p2 pl0.2 sp=grad fc=grey f0
-p2 pl1 f2 w
-p2 pl1 f1
-p2 pl0.2 f0 sp=grad fc=grey 
-d1 f1 tx=$\tau$ tdx=-0.1
-p1 pl1 f1 fc=k w
-p1 pl1 f2 ph_y fc=k
-d0.8 f2 tx=$\tau$ tdx=0
-p2 pl1 f2 w
-p2 pl1 f1
-d0.8 tx=$\tau$ f2
-p1 pl1 f2 fc=k
-d0.5 f2 tx=$\delta_2$
-p2 pl1 f2
-d0.2 f2 
-p2 pl0.1 f0 sp=grad fc=lightblue w
-d0.3 f2 tx=$\delta_2$ tdx=-0.1
-p1.1 pl0.1 f1 tx=WALTZ-16 w tdy=0.2 h||| tfs13
-p1.1 pl1 f2 sp=fid_20 phrec troff o np=200 pdy=0.1
+# dephase 15N
+{pN90}
+{grad}
+d2
 
+# inept
+{pH90}
+{tau}
+d-1
+{grad}
+{pH180} w
+{pN180}
+{grad}
+d-1
+{tau}
+{pH90} ph_y 
+{flipback} ph_-x
+{grad}
+{pN90} ph_x$^*$
+
+# t1 evolution
+d14 tx=$t_1$ f1 w
+d7
+{pH180} c kc
+d7
+
+# add line here
+p0 n=t1end f1 pl0.8 w skw={{'linestyle':'--', 'linewidth':1}}
+
+# echo, 15n dephasing
+d4 f1 tx=$\delta_1$
+{pN180}
+d4 f1 tx=$\delta_1$
+d-1
+{grad} pl0.8 h---- 
+
+# reverse inept
+{pH90} w
+{pN90} ph1
+{tau} f1
+d-1
+{grad}
+{pH180} w
+{pN180}
+{grad} 
+d-1
+{tau} f1
+
+# refocus
+{pN90} w
+{pH90} ph_y
+{tau}
+{pH180} w
+{pN180}
+{tau}
+{pH90}
+
+
+# refocus, 1H rephasing
+d4 f2 tx=$\delta_2$
+{pH180}
+d4 f2 tx=$\delta_2$
+d-1
+{grad} pl0.3 h---- 
+
+# detect
+p10 pl0.2 f1 ph=_WALTZ-16 w h////
+p10 pl1 f2 sp=fid_20_4 phrec np=200
 """
 
 fig, ax = pplot.subplots(figsize=(8, 2.5), constrained_layout=True)
 
-ax.params = {"p1": 0.1, "p2": 0.2, "d1": 0.6, "d2": 0.05, "pl1": 0.5, "pl0.2": 0.4}
-ax.fontsize = 13
+ax.params = {"f1": 2, "f2": 4, "f0": 0.7}
+ax.phase_dy = 0.1
 
-ax.pseq(p)
-ax.axis(False)
-ax.draw_channels(0, 1, 2)
+ax.pseq(hsqc)
+ax.draw_channels(0.7, 2, 4)
 
-x = ax.get_time(name="t1end")
-ax.vlines(x, 1.5, 1, linestyle="--", color="k", linewidth=1)
+# x = ax.get_time(name="t1end")
+# ax.vlines(x, 3, 2, linestyle="--", color="k", linewidth=1)
 
 fig.savefig(EXAMPLES_DIR.joinpath("hsqcetgpsi.png"), dpi=150)
