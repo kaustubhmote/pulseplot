@@ -5,6 +5,7 @@ Utilities for making plots
 from warnings import warn
 import matplotlib.pyplot as plt
 from matplotlib.projections import register_projection
+from matplotlib.animation import ArtistAnimation
 
 from .parse import Delay, Pulse, PulseSeq
 
@@ -72,6 +73,15 @@ def show(*args, **kwargs):
     plt.show(*args, **kwargs)
 
     return
+
+
+def animation(*args, **kwargs):
+    """
+    Artist animation wrapper to avoid another import
+    
+    """
+
+    return ArtistAnimation(*args, **kwargs)
 
 
 class PulseProgram(plt.Axes):

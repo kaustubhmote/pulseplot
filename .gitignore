@@ -1,4 +1,5 @@
 __pycache__
 
 examples/*png
+examples/*gif
 tests/*png

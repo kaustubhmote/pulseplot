@@ -23,12 +23,17 @@ fig.savefig("spin_echo.png", dpi=150)
 ```
 
 ![Spin-Echo](examples/spin_echo.png "spin echo")
-[See Source](examples/spin_echo.py)
 
-### Or, maybe something more complicated?
+Or, maybe something more complicated? Something with shaped pulses and
 
 ![HSQC](examples/hsqcetgpsi.png "hsqc")
 [See Source](examples/hsqcetgpsi.py)
+
+
+
+### Perhaps some simple animation?
+![Quadrature](examples/quadrature.gif "quad")
+[See Source](examples/quadrature.py)
 
 
 # Requirements
@@ -162,4 +167,44 @@ If you want your diagrams to look exactly like they appear on an oscilloscope, s
 [See source](examples/cross_polarization.py)
 
 
-# Make Animations
+# Animations
+
+We again piggy-back on Matplotlib's `ArtistAnimation` class to make simple animated gifs or mp4 files. This requires that you collect all artists for each frame of your animation separately, and pass this list of lists to the ArtistAnimation class. The simplest way to generate this is use f-strings to make a function to generate a string for your sequence (which is quite handy even if you don't want to make an animation). At each step, collect all the artists (in `pulseplot`, these artists are either patches or text objects, and then replot). Dont forget to reset `ax.time` each time. 
+
+```python
+def sequence(time):
+    pulse = r"p1 fc=black"
+    seq = fr"""
+        {pulse}
+        d{time} 
+        {pulse}
+        d2 tx=$\tau$
+        {pulse}
+        p15 pl1 sp=fid fc=none
+        
+        """
+    return seq
+
+fig, ax = pplot.subplots(figsize=(7, 1), dpi=300)
+ax.spacing = 0.1
+
+parts = []
+for i in range(10):
+    ax.time = 0
+    ax.pseq(sequence(i))
+    ax.draw_channels(0)
+    
+    if i == 0:
+        npatches, ntexts = len(ax.patches), len(ax.texts)
+
+    parts.append(ax.patches[-npatches:] + ax.texts[-ntexts:])
+    
+two_dim = pplot.animation(
+    fig, 
+    parts, 
+    interval=1000, 
+)
+
+two_dim.save("two_d.gif")
+```
+The above example assumes that the number of patches and texts dont change in any of the frames. If this is not correct, you need to track the number of patches/text in each iteration, and only add the ones you want to.
