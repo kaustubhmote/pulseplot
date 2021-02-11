@@ -66,7 +66,8 @@ def parse_base(instructions, params=None):
     matches = re.findall(PATTERN, instructions)
     for m in matches:
         for i, _ in enumerate(arguments):
-            if value := m[i]:
+            value = m[i]
+            if value:
                 arguments[i] = value
 
     # parse and pick up values + cast to appropriate types
