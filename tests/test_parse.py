@@ -118,7 +118,7 @@ def test_pulse_seq():
         "s": "$\\\\tau$",
         "ha": "center",
         "va": "center",
-        "fontsize": 10,
+        "fontsize": 15,
     }
 
 

@@ -200,7 +200,7 @@ class Pulse(object):
 
         phtxtparams = {"x": xpos, "y": ypos, "s": text, "fontsize": self.ph_fontsize}
 
-        return {**phtxtparams, **TEXT_DEFAULTS, **self.phase_kw, **kwargs}
+        return {**TEXT_DEFAULTS, **phtxtparams, **self.phase_kw, **kwargs}
 
     def label_params(self, **kwargs):
         """
@@ -227,7 +227,7 @@ class Pulse(object):
             "fontsize": self.text_fontsize,
         }
 
-        return {**labelparams, **TEXT_DEFAULTS, **self.text_kw, **kwargs}
+        return {**TEXT_DEFAULTS, **labelparams, **self.text_kw, **kwargs}
 
     def __mul__(self, constant):
         """

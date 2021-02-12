@@ -4,43 +4,40 @@
 
 from setuptools import setup, find_packages
 
-with open('README.rst') as readme_file:
+with open("README.md") as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
-
-requirements = [ ]
-
-setup_requirements = ['pytest-runner', ]
-
-test_requirements = ['pytest>=3', ]
+requirements = ["numpy", "matplotlib>=3.3"]
+test_requirements = ["pytest>=3"]
 
 setup(
+    name="pulseplot",
+    description="A module to draw pulse-timing diagrams using Python/Matplotlib",
+    version="0.1-dev",
+    long_description=readme,
     author="Kaustubh R. Mote",
-    author_email='kaustubh@gmail.com',
-    python_requires='>=3.7',
+    author_email="kaustubh@gmail.com",
+    python_requires=">=3.7",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
-        'Natural Language :: English',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD 3-clause License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Topic :: Scientific/Engineering",
+        "Operating System :: MacOS :: MacOS X",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
     ],
-    description="Pulse Diagrams using",
     install_requires=requirements,
-    license="BSD license",
-    long_description=readme + '\n\n' + history,
+    license="BSD 3-clause license",
     include_package_data=True,
-    keywords='pulseplot',
-    name='pulseplot',
-    packages=find_packages(include=['pulseplot', 'pulseplot.*']),
+    packages=find_packages(include=["pulseplot"]),
     setup_requires=setup_requirements,
-    test_suite='tests',
+    test_suite="tests",
     tests_require=test_requirements,
-    url='https://github.com/kaustubhmote/pulseplot',
-    version='0.1.0',
+    url="https://github.com/kaustubhmote/pulseplot",
     zip_safe=False,
 )
