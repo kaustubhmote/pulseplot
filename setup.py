@@ -35,7 +35,7 @@ setup(
     license="BSD 3-clause license",
     include_package_data=True,
     packages=find_packages(include=["pulseplot"]),
-    setup_requires=setup_requirements,
+    setup_requires=requirements,
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/kaustubhmote/pulseplot",
