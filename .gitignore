@@ -1,6 +1,4 @@
 # images
-examples/*png
-examples/*gif
 tests/*png
 
 # Byte-compiled / optimized / DLL files
