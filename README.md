@@ -72,10 +72,16 @@ Start with importing the module.
 >>> fig, ax = pplot.subplots(nrows=2, ncols=2)
 >>> fig, ax = pplot.subplot_mosiac("AB\nCD")
 ```
-`pulseplot` piggy-backs on matplotlib's object-oriented interface. Just like `plt.subplots` (`plt` is short for `matplotlib.pyplot`, as usual), the function `pplot.subplots` returns `Figure` and `Axes` objects. It is in fact just a thin wrapper around the `plt.subplots()` call, and passes along all arguments given to it to `plt.subplots`. The only additional thing it does is define some methods on `Axes` that is returned (`ax`), so that it can, among other things, add pulses, delays, track their positions on the horizontal axis, etc. The `ax.pulse` and `ax.delay` methods "apply" pulses and delays with either strings, keyword arguments, or both. The method `pseq` is probably the most useful, as multiple pulse, delays, or both can be given. In addition the wonderful `plt.subplot_mosiac` function (available in matplotlib 3.3 and higher) is available as `pplot.subplot_mosiac`. You also get a `pplot.show()` call for convinience (It just calls plt.show(), ).
+`pulseplot` piggy-backs on matplotlib's object-oriented interface. Just like `plt.subplots` (`plt` is short for `matplotlib.pyplot`, as usual), the function `pplot.subplots` returns `Figure` and `Axes` objects. It is in fact just a thin wrapper around the `plt.subplots()` call, and passes along all arguments given to it to `plt.subplots`. The only additional thing it does is define some methods on `Axes` that is returned (`ax`), so that it can, among other things, add pulses, delays, track their positions on the horizontal axis, etc. The `ax.pulse` and `ax.delay` methods "apply" pulses and delays with either strings, keyword arguments, or both. The method `pseq` is probably the most useful, as multiple pulse, delays, or both can be given. In addition the wonderful `plt.subplot_mosaic` function (available in matplotlib 3.3 and higher) is available as `pplot.subplot_mosaic`. You also get a `pplot.show()` call for convinience (It just calls plt.show()).
 
-If you instead want to manually add an `Axes` to `Figure` using `fig.add_subplot(...)`, you should see [this]() example. There is, unfortunately, no way to make this work in the pylab interface.
+If you instead want to manually add an `Axes` to `Figure` using `fig.add_subplot(...)`, you will first need to register the "PulseProgram" projection.
 
+```python
+>>> pplot.register_projection(pplot.PulseProgram)
+
+>>> fig = plt.figure()
+>>> ax = fig.add_subplot(111, projection="PulseProgram")
+```
 
 ## Pulses 
 
@@ -102,7 +108,7 @@ Note: Always use raw strings (`r"..."`) to avoid issues with escape characters.
 >>> ax.pseq(r"p1 pl1 f1 tx=CP tdx=0.1 tdy=-0.1 tfs=20" )
 ```
 
-The `ph1` declaration (equivalent to `ph=1`) adds a text $\phi_1$ at an automatically calculated location at the top of the pulse. If instead, you want to put in only a label `x`, simply start the text to be put in with an underscore. If you are not happy with the exact location of this label, use `pdx` and `pdy` to move the label from its automatically calculated position, and `pfs` to change its fontsize. Similarly, a text can be specified by `tx`, and moved around using `tdx` and `tdy` from its default position (which is somewhere in the center of the pulse itself), and `tfs` specifies the fontsize. In matplotlib, all text inside `$...$` is interprested as a LATEX block.
+The `ph1` declaration (equivalent to `ph=1`) adds a text $\phi_1$ at an automatically calculated location at the top of the pulse. If instead, you want to put in only a label `x`, simply start the text to be put in with an underscore. If you are not happy with the exact location of this label, use `pdx` and `pdy` to move the label from its automatically calculated position, and `pfs` to change its fontsize. Similarly, a text can be specified by `tx`, and moved around using `tdx` and `tdy` from its default position (which is somewhere in the center of the pulse itself), and `tfs` specifies the fontsize. In matplotlib, all text inside `$...$` is interpreted as a LATEX block.
 
 The default power for a pulse is 1 and the default channel is 0. These will be used if none are specified.
 
