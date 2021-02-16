@@ -17,7 +17,7 @@ d10 tx=$\tau$
 p10 sp=fid phrec 
 """
 
-fig, ax = pplot.subplots(figsize=(10, 2))
+fig, ax = pplot.subplots(figsize=(7, 2))
 ax.pseq(spin_echo)
 fig.savefig("spin_echo.png", dpi=150)
 ```

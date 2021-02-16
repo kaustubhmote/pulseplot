@@ -9,7 +9,7 @@ pH90 = r"p1 pl1 fc=black f2"
 pN90 = r"p1 pl1 fc=black f1"
 pH180 = r"p2 pl1 f2"
 pN180 = r"p2 pl1 f1"
-flipback = r"p5 pl0.5 sp=gauss fc=lightgrey f2"
+flipback = r"p5 pl0.5 sp=gauss fc=tab:blue f2"
 tau = r"d10 f2 tx=$\tau$"
 
 
@@ -38,7 +38,7 @@ d-1
 {pH90} ph_y 
 {flipback} ph_-x
 {grad}
-{pN90} ph_x$^*$
+{pN90} ph_*
 
 # t1 evolution
 d14 tx=$t_1$ f1 w
@@ -54,7 +54,7 @@ d4 f1 tx=$\delta_1$
 {pN180}
 d4 f1 tx=$\delta_1$
 d-1
-{grad} pl0.8 h---- 
+{grad} pl0.8 fc=tab:blue 
 
 # reverse inept
 {pH90} w
@@ -83,22 +83,20 @@ d4 f2 tx=$\delta_2$
 {pH180}
 d4 f2 tx=$\delta_2$
 d-1
-{grad} pl0.3 h---- 
+{grad} pl0.3 fc=tab:blue 
 
 # detect
 p10 pl0.2 f1 ph=_WALTZ-16 w h////
-p10 pl1 f2 sp=fid_20_4 phrec np=200
+p10 pl1 f2 sp=fid_20_4 phrec np=200 pdy=0.2
 """
 
 fig, ax = pplot.subplots(figsize=(8, 2.5), constrained_layout=True)
 
 ax.params = {"f1": 2, "f2": 4, "f0": 0.7}
 ax.phase_dy = 0.1
+ax.fontsize = 12
 
 ax.pseq(hsqc)
 ax.draw_channels(0.7, 2, 4)
-
-# x = ax.get_time(name="t1end")
-# ax.vlines(x, 3, 2, linestyle="--", color="k", linewidth=1)
 
 fig.savefig(EXAMPLES_DIR.joinpath("hsqcetgpsi.png"), dpi=150)
