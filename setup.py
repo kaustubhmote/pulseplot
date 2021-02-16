@@ -7,13 +7,13 @@ from setuptools import setup, find_packages
 with open("README.md") as readme_file:
     readme = readme_file.read()
 
-requirements = ["numpy", "matplotlib>=3.3"]
+requirements = ["numpy", "matplotlib"]
 test_requirements = ["pytest>=3"]
 
 setup(
     name="pulseplot",
     description="A module to draw pulse-timing diagrams using Python/Matplotlib",
-    version="0.1-dev",
+    version="0.0.1",
     long_description=readme,
     long_description_content_type='text/markdown',
     author="Kaustubh R. Mote",
@@ -33,7 +33,6 @@ setup(
         "Operating System :: POSIX :: Linux",
     ],
     install_requires=requirements,
-    license="BSD 3-clause license",
     include_package_data=True,
     packages=find_packages(include=["pulseplot"]),
     setup_requires=requirements,
