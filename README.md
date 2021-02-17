@@ -46,16 +46,25 @@ Perhaps some simple animation?
 # Installation
 
 1. Using pip
+
+Get the stable version from PyPi using
+```
+python -m pip install pulseplot
+```
+
+Else, you can also get the latest version from GitHub using
+
 ```
 python -m pip install git+https://github.com/kaustubhmote/pulseplot
 ```
 
-2. From Source
+2. Install from source
 ```
 git clone https://github.com/kaustubhmote/pulseplot
 cd pulseplot
 [activate your virtual environment]
 python -m pip install -r requirements.txt
+python -m pip install .
 ```
 
 # Usage
