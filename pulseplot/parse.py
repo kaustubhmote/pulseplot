@@ -120,7 +120,10 @@ class Pulse(object):
     """
 
     def __init__(
-        self, *args, external_params={}, **params,
+        self,
+        *args,
+        external_params={},
+        **params,
     ):
         """TODO: to be defined.
 
@@ -140,7 +143,10 @@ class Pulse(object):
 
         # check that the parsing is OK, remove things that are not required
         if args["time"] is not None:
-            raise ValueError("A combination of a Pulse and a Delay is not allowed")
+
+            raise ValueError(
+                f"A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}"
+            )
 
         if args["start_time"] is None:
             self.defer_start_time = True
@@ -383,7 +389,7 @@ class Delay(Pulse):
 
         # check that the parsig is OK, remove things that are not required
         if args["plen"] is not None:
-            raise ValueError("A combination of a Pulse and a Delay is not allowed")
+            raise ValueError("A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}")
 
         if args["start_time"] is None:
             self.defer_start_time = True
@@ -433,7 +439,9 @@ class PulseSeq(object):
     """Docstring for PulseSeq. """
 
     def __init__(
-        self, sequence, external_params={},
+        self,
+        sequence,
+        external_params={},
     ):
         """TODO: to be defined.
 
