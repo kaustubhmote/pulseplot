@@ -75,6 +75,8 @@ def test_shaped_pulses():
     p2 pl1 f2 troff o sp=fid phrec ecg
     p2 pl-0.5 sp=grad f1 fck
     p1 pl1 sp=sine f2 fcy
+    p2 pl1 sp=q3 f1 fc=grey
+    p2 pl1 sp=q5 f2 fc=grey
 
     """
     fig, ax = pplot.subplots()
