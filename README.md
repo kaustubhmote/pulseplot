@@ -1,4 +1,5 @@
 # pulseplot
+[![Try Online](https://img.shields.io/badge/<py>-Try%20Online%20Using%20Pyscript-brightgreen)](https://kaustubhmote.github.io/pulseplot/)
 
 Tired of opening Inkspace or (*gasp*) Illustrator to make
 simple pulse-timing diagrams? Want to combine spectra and 
