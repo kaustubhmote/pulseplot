@@ -120,10 +120,7 @@ class Pulse(object):
     """
 
     def __init__(
-        self,
-        *args,
-        external_params={},
-        **params,
+        self, *args, external_params={}, **params,
     ):
         """TODO: to be defined.
 
@@ -389,7 +386,9 @@ class Delay(Pulse):
 
         # check that the parsig is OK, remove things that are not required
         if args["plen"] is not None:
-            raise ValueError("A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}")
+            raise ValueError(
+                "A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}"
+            )
 
         if args["start_time"] is None:
             self.defer_start_time = True
@@ -439,9 +438,7 @@ class PulseSeq(object):
     """Docstring for PulseSeq. """
 
     def __init__(
-        self,
-        sequence,
-        external_params={},
+        self, sequence, external_params={},
     ):
         """TODO: to be defined.
 
@@ -634,3 +631,32 @@ class Shape(object):
     def grad2(self, *args, **kwargs):
         """Gradient: uses the sine shape instead of actual gradient shape"""
         return self.sine(*args, **kwargs)
+
+    def q3(self, *args, **kwargs):
+        """
+        Gaussian Cascade Q3 pulse
+        """
+
+        q3shape = np.abs(
+            -4.39 * self.gauss(x0=0.306, sigma=0.18 / 2)
+            + 4.57 * self.gauss(x0=0.545, sigma=0.183 / 2)
+            + 2.60 * self.gauss(x0=0.804, sigma=0.245 / 2)
+        )
+
+        return q3shape / q3shape.max()
+
+    def q5(self, *args, **kwargs):
+        """
+        Gaussian Cascade Q5 pulse
+        """
+
+        q5shape = np.abs(
+            -1.48 * self.gauss(x0=0.162, sigma=0.186 / 2)
+            - 4.34 * self.gauss(x0=0.307, sigma=0.139 / 2)
+            + 7.33 * self.gauss(x0=0.497, sigma=0.143 / 2)
+            - 2.30 * self.gauss(x0=0.643, sigma=0.290 / 2)
+            + 13.7 * self.gauss(x0=0.803, sigma=0.137 / 2)
+        )
+
+        return q5shape / q5shape.max()
+
