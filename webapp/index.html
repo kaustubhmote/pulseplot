@@ -1,0 +1,96 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+    <script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+
+    <style>
+        .output {
+            margin: auto;
+            max-width: 1000px;
+            border: none;
+            padding: 2px;
+            text-align: center;
+
+        }
+
+        .header {
+            margin: auto;
+            max-width: 1000px;
+            font-size: 40;
+            font-style: italic;
+
+        }
+
+        .info {
+            margin: auto;
+            max-width: 1000px;
+            font-size: 15;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+
+        .code {
+            margin: auto;
+            max-width: 1060px;
+            font-size: 12;
+        }
+
+    </style>
+
+    <py-env>
+        - matplotlib
+        - pulseplot
+    </py-env>
+
+
+</head>
+
+<body>
+
+    <div class="header">
+        <span style="color: orange">Pulseplot</span> <span style="font-size: 25;">(powered by <u><a href="https://pyscript.net/" >pyscript</a></u>)</span>
+    </div>
+
+    <div class="info">
+        To generate pulse-sequence diagrams, just hit `Ctrl-Enter` on the code block below, or click using the green arrow that appears when you hover over the code block. <br><br>
+
+        This may take a good 20-30 seconds to load when you land on this page, and a few seconds when you execute it for the first time. But any changes you make to the code after that should immediately reflected in the output.
+
+    </div>
+
+    <div class="code">
+        
+        <py-repl id="my-repl" output="output" output-mode="write">
+
+import matplotlib.pyplot as plt
+import pulseplot as pplot
+
+phases = "xyxyyxyx"
+
+fig, ax = pplot.subplots(figsize=(10, 3))
+ax.set_title("Carr-Purcell-Meiboom-Gill with an XY-8 phase cycle", x=0.41)
+ax.center_align = True
+
+ax.pseq("p1 fc=black ph1")
+for i in range(8):
+    ax.pseq(fr"""
+        d5
+        p2 pl1 ph_$\pi_{phases[i]}$
+        d5
+    """)
+ax.pseq("p20 sp=fid ph=rec ec=green")
+ax.set_ylim(-0.6, 0.8)
+ax.hlines(0, 0, ax.time-20, color="k", zorder=0)
+
+# keep the following line to render the output
+# to the correct location on this page
+pyscript.write("output", fig)
+
+        </py-repl>
+    </div>
+
+    <div id="output" class="output"></div>
+</body>
+
+</html>
