@@ -191,6 +191,8 @@ This would not be very useful library without the ability to add shaped pulses. 
 | `grad`     | risetime           | `grad_8`         | Gradient                |
 | `sine`     | -                  | `sine`           | Sinusoid (0 to 2$\pi$)  |
 | `grad2`    | gives back `sine`  | `grad2`          | Sinusoid (0 to 2$\pi$)  |
+| `q3`       | -                  | `q3`             | Gaussian cascade Q3     |
+| `q5`       | -                  | `q5`             | Gaussian cascade Q5     |
 
 ---
 
