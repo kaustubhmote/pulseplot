@@ -77,6 +77,7 @@ def test_shaped_pulses():
     p1 pl1 sp=sine f2 fcy
     p2 pl1 sp=q3 f1 fc=grey
     p2 pl1 sp=q5 f2 fc=grey
+    p5 pl1 sp=reburp f1 fc=pink
 
     """
     fig, ax = pplot.subplots()

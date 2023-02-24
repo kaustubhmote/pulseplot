@@ -8,10 +8,12 @@ from warnings import warn
 import numpy as np
 from matplotlib.patches import Polygon
 
-PULSE_DEFAULTS = {"power": 1.0, "channel": 0.0}
-TEXT_DEFAULTS = {"fontsize": 10, "ha": "center", "va": "center"}
+PULSE_DEFAULTS = {'power': 1.0, 'channel': 0.0}
+TEXT_DEFAULTS = {'fontsize': 10, 'ha': 'center', 'va': 'center'}
 
-PAR = namedtuple("parameters", ["name", "type", "default", "pattern", "parents"])
+PAR = namedtuple(
+    'parameters', ['name', 'type', 'default', 'pattern', 'parents']
+)
 
 # fmt: off
 PARAMS = {
@@ -46,7 +48,7 @@ PARAMS = {
 }
 # fmt: on
 
-PATTERN = "".join([v.pattern for k, v in PARAMS.items()])
+PATTERN = ''.join([v.pattern for k, v in PARAMS.items()])
 
 
 def parse_base(instructions, params=None):
@@ -55,7 +57,7 @@ def parse_base(instructions, params=None):
     using regexes
 
     """
-    arguments = [""] * len(PARAMS)
+    arguments = [''] * len(PARAMS)
 
     userparams = {}
 
@@ -82,7 +84,7 @@ def parse_base(instructions, params=None):
                         userparams[param_info.name] = param_info.type(value)
                     except ValueError:
                         raise ValueError(
-                            f"Cannot cast {arg} in the appropriate type {param_info.type} "
+                            f'Cannot cast {arg} in the appropriate type {param_info.type} '
                         )
                 else:
                     userparams[param_info.name] = value
@@ -94,17 +96,19 @@ def parse_base(instructions, params=None):
                     userparams[param_info.name] = not param_info.default
 
                 else:
-                    if arg[len(param)] == "=":
+                    if arg[len(param)] == '=':
                         value = arg[len(param) + 1 :]
                     else:
                         value = arg[len(param) :]
 
                     if callable(param_info.type):
                         try:
-                            userparams[param_info.name] = param_info.type(value)
+                            userparams[param_info.name] = param_info.type(
+                                value
+                            )
                         except ValueError:
                             raise ValueError(
-                                f"Cannot cast {arg} in the appropriate type {param_info.type}"
+                                f'Cannot cast {arg} in the appropriate type {param_info.type}'
                             )
                     else:
                         userparams[param_info.name] = value
@@ -120,7 +124,10 @@ class Pulse(object):
     """
 
     def __init__(
-        self, *args, external_params={}, **params,
+        self,
+        *args,
+        external_params={},
+        **params,
     ):
         """TODO: to be defined.
 
@@ -132,31 +139,33 @@ class Pulse(object):
 
         """
         try:
-            self.args = " ".join(i for i in args)
+            self.args = ' '.join(i for i in args)
         except TypeError as e:
-            raise TypeError("All arguments without a keyword should be strings")
+            raise TypeError(
+                'All arguments without a keyword should be strings'
+            )
 
         args = parse_base(self.args, external_params)
 
         # check that the parsing is OK, remove things that are not required
-        if args["time"] is not None:
+        if args['time'] is not None:
 
             raise ValueError(
-                f"A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}"
+                f'A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}'
             )
 
-        if args["start_time"] is None:
+        if args['start_time'] is None:
             self.defer_start_time = True
-            args["start_time"] = 0
+            args['start_time'] = 0
         else:
             self.defer_start_time = False
 
         for _, v in PARAMS.items():
-            if "pulse" not in v.parents:
+            if 'pulse' not in v.parents:
                 args.pop(v.name)
 
         # handle keywords from string
-        for item in ["phase_kw", "text_kw", "style_kw"]:
+        for item in ['phase_kw', 'text_kw', 'style_kw']:
             try:
                 # maybe json needs to be replaced with ast.literal_eval?
                 args[item] = json.loads(args[item])
@@ -165,18 +174,18 @@ class Pulse(object):
                 args[item] = json.loads(args[item].replace("'", '"'))
 
             except json.decoder.JSONDecodeError as e:
-                raise ValueError(f"The input {args[item]} is not understood.")
+                raise ValueError(f'The input {args[item]} is not understood.')
 
         try:
-            if args["text"].startswith("`") and args["text"].endswith("`"):
-                args["text"] = args["text"][1:-1]
+            if args['text'].startswith('`') and args['text'].endswith('`'):
+                args['text'] = args['text'][1:-1]
         except AttributeError:
             pass
 
-        if args["shape"] is not None:
-            if args["shape"].startswith("fid"):
-                args["truncate_off"] = True
-                args["open"] = True
+        if args['shape'] is not None:
+            if args['shape'].startswith('fid'):
+                args['truncate_off'] = True
+                args['open'] = True
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
@@ -190,18 +199,23 @@ class Pulse(object):
         by the kwargs passed to this function.
 
         """
-        if self.phase.startswith("_"):
-            text = fr"{self.phase[1:]}"
+        if self.phase.startswith('_'):
+            text = rf'{self.phase[1:]}'
 
         else:
-            text = fr"$\phi_{{{self.phase}}}$"
+            text = rf'$\phi_{{{self.phase}}}$'
 
         p = self.patch()
         center = int(self.npoints // 2)
         xpos = p.xy[:, 0][center] + self.phtxt_dx
         ypos = p.xy[:, 1][center] + self.phtxt_dy + 0.15
 
-        phtxtparams = {"x": xpos, "y": ypos, "s": text, "fontsize": self.ph_fontsize}
+        phtxtparams = {
+            'x': xpos,
+            'y': ypos,
+            's': text,
+            'fontsize': self.ph_fontsize,
+        }
 
         return {**TEXT_DEFAULTS, **phtxtparams, **self.phase_kw, **kwargs}
 
@@ -224,10 +238,10 @@ class Pulse(object):
         # ypos = self.power / 2 + self.channel + self.text_dy
 
         labelparams = {
-            "x": xpos,
-            "y": ypos,
-            "s": self.text,
-            "fontsize": self.text_fontsize,
+            'x': xpos,
+            'y': ypos,
+            's': self.text,
+            'fontsize': self.text_fontsize,
         }
 
         return {**TEXT_DEFAULTS, **labelparams, **self.text_kw, **kwargs}
@@ -240,7 +254,7 @@ class Pulse(object):
         try:
             self.plen *= constant
         except ValueError:
-            raise ValueError("Pulse can only be multiplied with a constant")
+            raise ValueError('Pulse can only be multiplied with a constant')
 
     def __add__(self, constant):
         """
@@ -250,7 +264,7 @@ class Pulse(object):
         try:
             self.plen += constant
         except ValueError:
-            raise ValueError("Pulse can only be added to by a constant")
+            raise ValueError('Pulse can only be added to by a constant')
 
     def __pow__(self, constant):
         """
@@ -260,7 +274,9 @@ class Pulse(object):
         try:
             self.power *= constant
         except ValueError:
-            raise ValueError("Pulse Power can only be increased by constant factor")
+            raise ValueError(
+                'Pulse Power can only be increased by constant factor'
+            )
 
     def get_shape(self):
         """
@@ -336,10 +352,10 @@ class Pulse(object):
             vertices.append([x[-1], self.channel])
 
         patch_params = {
-            "facecolor": self.facecolor,
-            "edgecolor": self.edgecolor,
-            "hatch": self.hatch,
-            "alpha": self.alpha,
+            'facecolor': self.facecolor,
+            'edgecolor': self.edgecolor,
+            'hatch': self.hatch,
+            'alpha': self.alpha,
             **self.style_kw,
         }
 
@@ -378,29 +394,31 @@ class Delay(Pulse):
 
         """
         try:
-            self.args = " ".join(i for i in args)
+            self.args = ' '.join(i for i in args)
         except TypeError as e:
-            raise TypeError("All arguments without a keyword should be strings")
+            raise TypeError(
+                'All arguments without a keyword should be strings'
+            )
 
         args = parse_base(self.args, external_params)
 
         # check that the parsig is OK, remove things that are not required
-        if args["plen"] is not None:
+        if args['plen'] is not None:
             raise ValueError(
-                "A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}"
+                'A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}'
             )
 
-        if args["start_time"] is None:
+        if args['start_time'] is None:
             self.defer_start_time = True
-            args["start_time"] = 0
+            args['start_time'] = 0
         else:
             self.defer_start_time = False
 
         for k, v in PARAMS.items():
-            if "delay" not in v.parents:
+            if 'delay' not in v.parents:
                 args.pop(v.name)
 
-        for item in ["text_kw", "phase_kw", "style_kw"]:
+        for item in ['text_kw', 'phase_kw', 'style_kw']:
             try:
                 args[item] = json.loads(args[item])
 
@@ -408,14 +426,14 @@ class Delay(Pulse):
                 args[item] = json.loads(args[item].replace("'", '"'))
 
             except json.decoder.JSONDecodeError as e:
-                raise ValueError(f"The input {args[item]} is not understood.")
+                raise ValueError(f'The input {args[item]} is not understood.')
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
         self.plen = self.time
-        self.facecolor = "none"
-        self.edgecolor = "none"
-        self.power = PULSE_DEFAULTS["power"]
+        self.facecolor = 'none'
+        self.edgecolor = 'none'
+        self.power = PULSE_DEFAULTS['power']
 
     def __mul__(self, constant):
         """Increases the delay by a given factor"""
@@ -423,7 +441,7 @@ class Delay(Pulse):
         try:
             self.time *= constant
         except ValueError:
-            raise ValueError("Pulse can only be multiplied with a constant")
+            raise ValueError('Pulse can only be multiplied with a constant')
 
     def __add__(self, constant):
         """Adds a constant to the pulse length"""
@@ -431,14 +449,16 @@ class Delay(Pulse):
         try:
             self.time += constant
         except ValueError:
-            raise ValueError("Pulse can only be added to by a constant")
+            raise ValueError('Pulse can only be added to by a constant')
 
 
 class PulseSeq(object):
-    """Docstring for PulseSeq. """
+    """Docstring for PulseSeq."""
 
     def __init__(
-        self, sequence, external_params={},
+        self,
+        sequence,
+        external_params={},
     ):
         """TODO: to be defined.
 
@@ -450,12 +470,12 @@ class PulseSeq(object):
         """
         self.elements = []
         self.named_elements = {}
-        self.input_string = ""
+        self.input_string = ''
 
         if isinstance(sequence, str):
             self.input_string = sequence
-            self.args = [i for i in sequence.split("\n") if i.strip()]
-            self.args = [i.split("#")[0] for i in self.args if i.split("#")[0]]
+            self.args = [i for i in sequence.split('\n') if i.strip()]
+            self.args = [i.split('#')[0] for i in self.args if i.split('#')[0]]
 
         elif isinstance(sequence, list):
             self.args = sequence
@@ -469,14 +489,14 @@ class PulseSeq(object):
                     element = Delay(arg, external_params=external_params)
 
                 except:
-                    raise ValueError(f"Argument {arg} not understood.")
+                    raise ValueError(f'Argument {arg} not understood.')
 
             elif isinstance(arg, Pulse) or isinstance(arg, Delay):
                 element = arg
 
             else:
                 raise ValueError(
-                    f"Invalid argument type {type(arg)} ({arg}) for a pulse sequence element"
+                    f'Invalid argument type {type(arg)} ({arg}) for a pulse sequence element'
                 )
 
             self.elements.append(element)
@@ -493,7 +513,7 @@ class PulseSeq(object):
             try:
                 index = self.named_elements[name]
             except KeyError:
-                raise KeyError(f"Element {name} not found")
+                raise KeyError(f'Element {name} not found')
 
             self.elements[index].__dict__.update(kwargs)
 
@@ -502,7 +522,7 @@ class PulseSeq(object):
 
 
 class Shape(object):
-    """ Pulse shapes """
+    """Pulse shapes"""
 
     def __init__(self, name, npoints):
         """shape object with a name and the number of points"""
@@ -517,8 +537,8 @@ class Shape(object):
 
     def guess_pars(self):
         """Guesses the shape name and any parameters separated by _"""
-        new_pars = ["", None, None]
-        pars = self.input.split("_")
+        new_pars = ['', None, None]
+        pars = self.input.split('_')
 
         try:
             new_pars[0] = str(pars[0])
@@ -527,7 +547,7 @@ class Shape(object):
         except IndexError:
             pass
         except ValueError:
-            raise ValueError(f"Did not understand the show {self.input}")
+            raise ValueError(f'Did not understand the show {self.input}')
 
         return new_pars
 
@@ -546,7 +566,7 @@ class Shape(object):
             return self.__getattribute__(self.name)(*self.pars)
         except AttributeError:
             warn(
-                f"Did not understand the shape {self.name}. Changing to a square shape"
+                f'Did not understand the shape {self.name}. Changing to a square shape'
             )
             return self.square()
 
@@ -555,13 +575,13 @@ class Shape(object):
         return np.ones(self.npoints)
 
     def gauss(self, x0, sigma, *args, **kwargs):
-        "Gaussian shaped pulse"
+        """Gaussian shaped pulse"""
         if x0 is None:
             x0 = 0.5
         if sigma is None:
             sigma = 1 / 6.0
 
-        s = np.exp(-((self.xscale - x0) ** 2) / 2 / sigma ** 2)
+        s = np.exp(-((self.xscale - x0) ** 2) / 2 / sigma**2)
 
         return self.normalize(s)
 
@@ -618,7 +638,7 @@ class Shape(object):
         if rise is None:
             rise = 8
 
-        s = np.exp(-((self.xscale - 0.5) ** rise) / 0.5 ** rise)
+        s = np.exp(-((self.xscale - 0.5) ** rise) / 0.5**rise)
 
         return self.normalize(s)
 
@@ -660,3 +680,30 @@ class Shape(object):
 
         return q5shape / q5shape.max()
 
+    def _burp(self, An, Bn, t):
+        """
+        General BURP Shape
+
+        """
+        shape = sum(
+            [
+                a * np.cos(n * t) + b * np.sin(n * t)
+                for n, (a, b) in enumerate(zip(An, Bn))
+            ]
+        )
+
+        return shape / np.max(shape)
+
+    def reburp(self, *args, **kwargs):
+
+        t = np.linspace(0, 16, 256)
+
+        # fmt:off
+        An = [0.49, -1.02, 1.11, -1.57, 0.83, -0.42, 
+              0.26, -0.16, 0.10, -0.07, 0.04, -0.03,
+              0.01, -0.02, 0.00, -0.01,]        
+        
+        Bn = [0.00] * 16
+        # fmt:on
+
+        return self._burp(An, Bn, t)
