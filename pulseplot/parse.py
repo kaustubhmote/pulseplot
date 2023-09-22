@@ -186,6 +186,7 @@ class Pulse(object):
             if args['shape'].startswith('fid'):
                 args['truncate_off'] = True
                 args['open'] = True
+                args['facecolor'] = 'none'
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
