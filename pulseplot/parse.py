@@ -46,9 +46,27 @@ PARAMS = {
     "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",                  ["pulse", "delay"],),
     "skw":   PAR("style_kw",        str,    "{}",     r"(skw=?{.*?})?",                 ["pulse", "delay"],),
 }
-# fmt: on
+class ParseError(ValueError):
+    """Exception raised for parsing errors in pulse instructions."""
+    def __init__(self, message, instructions, span=None, suggestion=None):
+        super().__init__(message)
+        self.instructions = instructions
+        self.span = span  # (start, end)
+        self.suggestion = suggestion
 
-PATTERN = ''.join([v.pattern for k, v in PARAMS.items()])
+    def __str__(self):
+        if self.span is None:
+            return super().__str__()
+        
+        start, end = self.span
+        pointer = ' ' * start + '^' * (end - start)
+        msg = f"{self.instructions}\n{pointer}\n{super().__str__()}"
+        if self.suggestion:
+            msg += f"\nSuggestion: {self.suggestion}"
+        return msg
+
+
+PATTERN = '|'.join([f"(?P<{k}>\\b{v.pattern[1:-2]})" for k, v in PARAMS.items()])
 
 
 def parse_base(instructions, params=None):
@@ -57,63 +75,83 @@ def parse_base(instructions, params=None):
     using regexes
 
     """
-    arguments = [''] * len(PARAMS)
-
-    userparams = {}
-
     if params is None:
         params = {}
 
-    # match and squash
-    matches = re.findall(PATTERN, instructions)
-    for m in matches:
-        for i, _ in enumerate(arguments):
-            value = m[i]
-            if value:
-                arguments[i] = value
+    userparams = {v.name: v.default for v in PARAMS.values()}
 
-    # parse and pick up values + cast to appropriate types
-    for arg, (param, param_info) in zip(arguments, PARAMS.items()):
-        if arg:
-            try:
-                # check external params dict
-                value = params[arg]
+    last_end = 0
+    for match in re.finditer(PATTERN, instructions):
+        start, end = match.span()
+        
+        # Check for gaps between matches
+        gap = instructions[last_end:start]
+        if gap.strip():
+            # Find the actual non-whitespace part of the gap
+            gap_start = last_end + (len(gap) - len(gap.lstrip()))
+            gap_end = start
+            raise ParseError(
+                f"Unknown sequence: {gap[len(gap)-len(gap.rstrip()):].strip()}", 
+                instructions, 
+                (gap_start, gap_end)
+            )
+        
+        k = match.lastgroup
+        arg = match.group()
+        param_info = PARAMS[k]
+
+        try:
+            # check external params dict
+            value = params[arg]
+
+            if callable(param_info.type):
+                try:
+                    userparams[param_info.name] = param_info.type(value)
+                except ValueError:
+                    raise ParseError(
+                        f'Cannot cast external value {value} for {arg} to {param_info.type.__name__}', 
+                        instructions, 
+                        match.span()
+                    )
+            else:
+                userparams[param_info.name] = value
+
+        except KeyError:
+            # special case for Boolean params
+            if arg == k:
+                userparams[param_info.name] = not param_info.default
+            else:
+                if arg[len(k)] == '=':
+                    value = arg[len(k) + 1 :]
+                else:
+                    value = arg[len(k) :]
 
                 if callable(param_info.type):
                     try:
-                        userparams[param_info.name] = param_info.type(value)
+                        userparams[param_info.name] = param_info.type(
+                            value
+                        )
                     except ValueError:
-                        raise ValueError(
-                            f'Cannot cast {arg} in the appropriate type {param_info.type} '
+                        raise ParseError(
+                            f'Cannot cast {arg} value {value} to {param_info.type.__name__}', 
+                            instructions, 
+                            match.span()
                         )
                 else:
                     userparams[param_info.name] = value
+        
+        last_end = end
 
-            except KeyError:
-
-                # special case for Boolean params
-                if arg == param:
-                    userparams[param_info.name] = not param_info.default
-
-                else:
-                    if arg[len(param)] == '=':
-                        value = arg[len(param) + 1 :]
-                    else:
-                        value = arg[len(param) :]
-
-                    if callable(param_info.type):
-                        try:
-                            userparams[param_info.name] = param_info.type(
-                                value
-                            )
-                        except ValueError:
-                            raise ValueError(
-                                f'Cannot cast {arg} in the appropriate type {param_info.type}'
-                            )
-                    else:
-                        userparams[param_info.name] = value
-        else:
-            userparams[param_info.name] = param_info.default
+    # Check for trailing gap
+    trailing_gap = instructions[last_end:]
+    if trailing_gap.strip():
+        gap_start = last_end + (len(trailing_gap) - len(trailing_gap.lstrip()))
+        gap_end = len(instructions)
+        raise ParseError(
+            f"Unknown sequence: {trailing_gap.strip()}", 
+            instructions, 
+            (gap_start, gap_end)
+        )
 
     return userparams
 
@@ -406,7 +444,7 @@ class Delay(Pulse):
         # check that the parsig is OK, remove things that are not required
         if args['plen'] is not None:
             raise ValueError(
-                'A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}'
+                f'A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}'
             )
 
         if args['start_time'] is None:
@@ -486,8 +524,16 @@ class PulseSeq(object):
                 try:
                     element = Pulse(arg, external_params=external_params)
 
+                except ParseError:
+                    raise
+
                 except ValueError:
-                    element = Delay(arg, external_params=external_params)
+                    try:
+                        element = Delay(arg, external_params=external_params)
+                    except ParseError:
+                        raise
+                    except ValueError:
+                        raise ValueError(f'Argument {arg} not understood.')
 
                 except:
                     raise ValueError(f'Argument {arg} not understood.')
