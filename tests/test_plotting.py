@@ -46,7 +46,7 @@ def test_pulseseq():
     p1 pl1 ph4 f1 fck w
     p1 pl1 ph5 f2 fck
     p3 pl1 sp=fid f1 troff o fcnone ecr w
-    p3 pl0.9 sp=rampup_30 f2 tx=decoupling tkw={'fontsize':10}
+    p3 pl0.9 sp=ramp_30 f2 tx=decoupling tkw={'fontsize':10}
 
     """
 
