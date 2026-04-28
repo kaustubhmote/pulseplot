@@ -46,6 +46,7 @@ PARAMS = {
     "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",                  ["pulse", "delay"],),
     "skw":   PAR("style_kw",        str,    "{}",     r"(skw=?{.*?})?",                 ["pulse", "delay"],),
 }
+
 class ParseError(ValueError):
     """Exception raised for parsing errors in pulse instructions."""
     def __init__(self, message, instructions, span=None, suggestion=None):
@@ -67,7 +68,6 @@ class ParseError(ValueError):
 
 
 PATTERN = '|'.join([f"(?P<{k}>\\b{v.pattern[1:-2]})" for k, v in PARAMS.items()])
-
 
 def parse_base(instructions, params=None):
     """
