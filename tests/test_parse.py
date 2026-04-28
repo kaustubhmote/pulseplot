@@ -79,7 +79,7 @@ def test_parse_base_4():
 
 
 def test_shape():
-    seq = "p1 pl1 ph1 sp0 ch1"
+    seq = "p1 pl1 ph1 sp0 f1"
     out = parse_base(seq, {"sp0": lambda x: x ** 2})
     assert callable(out["shape"])
 
