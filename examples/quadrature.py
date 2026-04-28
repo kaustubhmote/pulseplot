@@ -48,11 +48,16 @@ sequences = {
 
 def psq(phase, delay, delay_txt, intensity):
     p90 = r"p0.5 pl1 fc=grey f1 skw={'linewidth': 2}"
-    delay_pars = r"f1 nt1 tfs20 f1"
+    delay_pars = r"nt1 tfs=20 f1"
+
+    if delay_txt.strip():
+        delay_txt = 'tx=' + delay_txt
+    else:
+        delay_txt = ""
 
     psq_formatted = fr"""
         {p90} ph_{phase} pfs=30
-        d={delay} tx={delay_txt} {delay_pars}
+        d={delay} {delay_txt} {delay_pars}
         {p90}
         d10 tx$\tau_{{mix}}$ f1 tfs20
         {p90}
