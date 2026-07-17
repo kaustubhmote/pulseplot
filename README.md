@@ -39,7 +39,7 @@ Perhaps some simple animation?
 Maybe you just want a decent looking rotor at exactly the magic angle... 
 
 ```python
-fig, ax = plt.subplots()
+fig, ax = pplot.subplots()
 ax.rotor()
 ```
 ![MAS](examples/mas_rotor.png "mas rotor")
