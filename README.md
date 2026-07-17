@@ -39,9 +39,14 @@ Perhaps some simple animation?
 Maybe you just want a decent looking rotor at exactly the magic angle... 
 
 ```python
-fig, ax = plt.subplots()
+import pulseplot as pplot
+
+fig, ax = pplot.subplots()
 ax.rotor()
+# add arrows, labels, and other things if needed
+fig.savefig("mas_rotor.png", dpi=150)
 ```
+
 ![MAS](examples/mas_rotor.png "mas rotor")
 [See Source](examples/mas_rotor.py)
 
