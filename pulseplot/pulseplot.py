@@ -2,10 +2,15 @@
 Utilities for making plots
 
 """
+
 from warnings import warn
 import matplotlib.pyplot as plt
 from matplotlib.projections import register_projection
 from matplotlib.animation import ArtistAnimation
+import matplotlib.patches as patches
+import matplotlib.transforms as transforms
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import numpy as np
 
 from .parse import Delay, Pulse, PulseSeq
 
@@ -20,7 +25,6 @@ def subplots(*args, **kwargs):
     register_projection(PulseProgram)
 
     if "subplot_kw" in kwargs.keys():
-
         if "projection" in kwargs["subplot_kw"]:
             warn(
                 f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}"
@@ -46,7 +50,6 @@ def subplot_mosaic(*args, **kwargs):
     register_projection(PulseProgram)
 
     if "subplot_kw" in kwargs.keys():
-
         if "projection" in kwargs["subplot_kw"]:
             warn(
                 f"Projection will be set to 'PulseProgram' instead of {kwargs['subplot_kw']['projection']}"
@@ -78,7 +81,7 @@ def show(*args, **kwargs):
 def animation(*args, **kwargs):
     """
     Artist animation wrapper to avoid another import
-    
+
     """
 
     return ArtistAnimation(*args, **kwargs)
@@ -168,9 +171,7 @@ class PulseProgram(plt.Axes):
             p.text_dy -= center
             p.phtxt_dy -= center
 
-        self.edit_limits(
-            xlow=xarr.min(), xhigh=xarr.max(), ylow=yarr.min(), yhigh=yarr.max()
-        )
+        self.edit_limits(xlow=xarr.min(), xhigh=xarr.max(), ylow=yarr.min(), yhigh=yarr.max())
 
         p.start_time -= self.spacing
         p.plen += 2 * self.spacing
@@ -251,9 +252,7 @@ class PulseProgram(plt.Axes):
                 try:
                     super().hlines(channel, x0, x1, **defaults)
                 except ValueError:
-                    raise ValueError(
-                        "Channel must be present in parameters, or must be a number"
-                    )
+                    raise ValueError("Channel must be present in parameters, or must be a number")
 
     def pseq(self, instruction):
         """
@@ -322,3 +321,275 @@ class PulseProgram(plt.Axes):
         self.limits["dy"] = (self.limits["yhigh"] - self.limits["ylow"]) / 50
 
         self.set_limits()
+
+    def rotor(
+        self,
+        axdims: list = None,
+        movement: float = 0.3,
+        length: float = 5.0,
+        radius: float = None,
+        cap_thickness: float = None,
+        bc_thickness: float = None,
+        angle_deg: float = 54.7,
+        xpos: float = 0,
+        ypos: float = 0,
+        smoothness: int = 1000,
+        alpha: float = 1.0,
+        zorder: int = 5,
+    ):
+        """
+        Adds a rotor to your axes. A separate, hidden axes with an equal aspect ratio
+        is created for this to maintain the correct dimension for the rotor. This
+        hidden axes object is returned and can be used independently
+
+        Parameters
+        ----------
+        axdims: list, optional
+            x, y positions and width of the xaxis
+
+        movement : float, optional
+            shading for the bottom cap, by default 0.3
+        length : float, optional
+            _description_, by default 5.0
+        radius : float, optional
+            radius of the rotor, by default 0.5
+        cap_thickness : float, optional
+            thickness of the drive (finned) cap, by default 0.4
+        bc_thickness : float, optional
+            thickness of the bottom cap, by default 0.12
+        angle_deg : float, optional
+            angle of the rotor with respect to X-direction, by default 90-54.7
+        xpos : float, optional
+            x-position for the center of the rotor, by default 0
+        ypos : float, optional
+            y-position for the center of the rotor, by default 0
+        smoothness : int, optional
+            how many shading rectangles to use to get a 3D effect, by default 1000
+        alpha : float, optional
+            opacity of the rotor body, by default 1.0
+        zorder : int, optional
+            zorder for all elements of teh rotor body, by default 5
+
+        Returns
+        -------
+        ax_ins
+            matplotlib axes object with the plotted rotor
+
+        Usage
+        -----
+        fig, ax = pplot.subplots(nrows=2, ncols=2)
+        ax[0, 0].rotor()
+        pplot.show()
+
+        """
+
+        if axdims is None:
+            x, y, width = [0, 0, 10]
+            w1, w2 = self.get_xlim()
+            h1, h2 = self.get_ylim()
+            width = max(abs(w2 - w1), abs(h2 - h1))           
+        else:
+            x, y, width = axdims
+
+        if radius is None:
+            radius = length * 0.1
+        if cap_thickness is None:
+            cap_thickness = length * 0.1
+        if bc_thickness is None:
+            bc_thickness = length * 0.05
+
+
+
+        ax_ins = inset_axes(
+            self, 
+            width=width,          
+            height=width,         
+            loc='center',       
+            bbox_to_anchor=(x, y), 
+            bbox_transform=self.transData, 
+            borderpad=0
+    )
+
+        ax_ins.plot(xpos, ypos, 'ok')
+        ax_ins.set_axis_off()
+        # ax_ins.set_in_layout(False)
+
+        ax_ins.patch.set_alpha(0.0)
+        ax_ins.set_aspect("equal")
+
+        ax_ins.set_xlim(-width/2, width/2)
+        ax_ins.set_ylim(-width/2, width/2)
+        ax_ins.set_zorder(5)
+
+        ax_ins = add_rotor(
+            ax_ins, movement, length, radius, cap_thickness, bc_thickness, angle_deg, xpos, ypos, smoothness, alpha=alpha, zorder=zorder
+        )
+        
+        ax_ins.set_in_layout(False)
+        return ax_ins
+
+
+def add_rotor(
+    ax: plt.Axes,
+    movement: float = 0.3,
+    length: float = 5.0,
+    radius: float = None,
+    cap_thickness: float = None,
+    bc_thickness: float = None,
+    angle_deg: float = 54.7,
+    xpos: float = 0,
+    ypos: float = 0,
+    smoothness: int = 1000,
+    alpha: float = 1.0,
+    zorder: int = 5,
+):
+    """
+    Generates a diagram for a rotor
+
+    Parameters
+    ----------
+    ax : Axes
+        matplotlib axes object
+    movement : float, optional
+        shading for the bottom, by default 0.3
+    length : float, optional
+        _description_, by default 5.0
+    radius : float, optional
+        radius of the rotor, by default 0.5
+    cap_thickness : float, optional
+        thickness of the drive (finned) cap, by default 0.4
+    bc_thickness : float, optional
+        thickness of the bottom cap, by default 0.12
+    angle_deg : float, optional
+        angle of the rotor with respect to X-direction, by default 90-54.7
+    xpos : float, optional
+        x-position for the center of the rotor, by default 0
+    ypos : float, optional
+        y-posotion for the center of the rotow, by default 0
+    smoothness : int, optional
+        how many shading rectanges to use to get a 3D effect, by default 1000
+    alpha : float, optional
+        opacity of the rotor body, by default 1.0
+    zorder : int, optional
+        zorder for all elements of the rotor body, by default 5
+
+    Returns
+    -------
+    ax
+        matplotlib axes object with the plotted rotor
+    """
+
+    if radius is None:
+        radius = length * 0.1
+    if cap_thickness is None:
+        cap_thickness = length * 0.1
+    if bc_thickness is None:
+        bc_thickness = length * 0.05
+
+    # for maintaining correct opacity
+    if 0 <= alpha < 1:
+        aa = True
+    else:
+        aa = False
+
+    # position of the marking
+
+    if movement > 2:
+        movement = movement % 2
+
+    if movement > 1:
+        fraction = movement - 1
+    else:
+        fraction = movement
+    phase = movement * np.pi
+
+    # simple transformation for the rotor angle and the position
+    angle_deg = 90 - angle_deg
+    tr = transforms.Affine2D().rotate_deg(angle_deg).translate(xpos, ypos) + ax.transData
+
+    # smoothness for the 3D effect on the rotor
+    num_strips = smoothness
+    y_vals = np.linspace(-radius, radius, num_strips)
+    dy = y_vals[1] - y_vals[0]
+    overlap = dy * 0.01
+
+    # main rotor body
+    for y in y_vals[:-1]:
+        intensity = 0.5 + 0.5 * np.cos(np.arcsin(y / radius)) ** 2
+        color = (intensity, intensity, intensity)
+        rect = patches.Rectangle(
+            (-length / 2, y),
+            length,
+            dy + overlap,
+            color=color,
+            linewidth=0,
+            alpha=alpha,
+            antialiased=aa,
+            zorder=zorder,
+        )
+        rect.set_transform(tr)
+        ax.add_patch(rect)
+
+    # drive cap
+    for y in y_vals[:-1]:
+        intensity = 0.8 * np.abs(np.cos(3 * np.arcsin(y / radius) + phase)) ** 4
+        color = (intensity, intensity, intensity)
+
+        # Apply the same logic to the drive cap strips
+        drive = patches.Rectangle(
+            (length / 2, y),
+            cap_thickness,
+            dy + overlap,
+            color=color,
+            linewidth=0,
+            alpha=alpha,
+            antialiased=aa,
+            zorder=zorder,
+        )
+        drive.set_transform(tr)
+        ax.add_patch(drive)
+
+    # bottom cap
+    bc_x = -length / 2 - bc_thickness
+    bc_y = radius
+    bc_y2 = radius - 2 * radius * fraction
+
+    if movement > 1:
+        c1 = "#808080"
+        c2 = "#1a1a1a"
+    else:
+        c1 = "#1a1a1a"
+        c2 = "#808080"
+
+    bottom_cap = patches.Rectangle(
+        (bc_x, bc_y),
+        bc_thickness,
+        -2 * radius * fraction,
+        color=c1,
+        linewidth=0,
+        alpha=alpha,
+        zorder=zorder,
+    )
+    bottom_cap2 = patches.Rectangle(
+        (bc_x, bc_y2),
+        bc_thickness,
+        -2 * radius * (1 - fraction),
+        color=c2,
+        linewidth=0,
+        alpha=alpha,
+        zorder=zorder,
+    )
+
+    bottom_cap.set_transform(tr)
+    bottom_cap2.set_transform(tr)
+    ax.add_patch(bottom_cap)
+    ax.add_patch(bottom_cap2)
+
+    # Added alpha and zorder to the boundary lines as well
+    for x_pos in [length / 2, length / 2 + cap_thickness, -length / 2, -length / 2 - bc_thickness]:
+        a = ax.vlines(
+            x_pos, -radius + 0.02, radius, color="#1a1a1a", linewidth=0.5, alpha=alpha, zorder=5
+        )
+        a.set_transform(tr)
+
+    return ax
