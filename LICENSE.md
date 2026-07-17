@@ -1,6 +1,6 @@
 BSD 3-Clause License
 
-Copyright (c) 2021, Kaustubh R. Mote
+Copyright (c) 2021-2023, Kaustubh R. Mote
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
