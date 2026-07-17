@@ -37,6 +37,20 @@ Perhaps some simple animation?
 
 [See Source](examples/quadrature.py)
 
+Maybe you just want a decent looking rotor at exactly the magic angle... 
+
+```python
+fig, ax = plt.subplots()
+ax.rotor()
+```
+![MAS](examples/mas_rotor.png "mas rotor")
+[See Source](examples/mas_rotor.py)
+
+...and then make it spin
+
+![spinning](examples/rotor_movement.gif "rotor movement")
+[See Source](examples/rotor_movement.py)
+
 
 # Requirements
 1. Python 3.7 or higher
