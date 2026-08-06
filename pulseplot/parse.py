@@ -17,143 +17,222 @@ PAR = namedtuple(
 
 # fmt: off
 PARAMS = {
-    "p":     PAR("plen",            float,  None,     r"(p=?[^lhdkf ]+)?",              ["pulse"],),
-    "pl":    PAR("power",           float,  1.0,      r"(pl=?[^ ]+)?",                  ["pulse", "delay"],),
-    "ph":    PAR("phase",           str,    None,     r"(ph=?[^ ]+)?",                  ["pulse", "delay"],),
-    "sp":    PAR("shape",           None,   None,     r"(sp=?[^ ]+)?",                  ["pulse", "delay"],),
-    "w":     PAR("wait",            bool,   False,    r"(w)?",                          ["pulse", "delay"],),
-    "c":     PAR("centered",        bool,   False,    r"(c[^l])?",                      ["pulse", "delay"],),
-    "kc":    PAR("keep_centered",   bool,   False,    r"(kc)?",                         ["pulse", "delay"],),
-    "fc":    PAR("facecolor",       str,    "white",  r"(fc=?[^ ]+)?",                  ["pulse", "delay"],),
-    "ec":    PAR("edgecolor",       str,    "black",  r"(ec=?[^ ]+)?",                  ["pulse", "delay"],),
-    "al":    PAR("alpha",           float,  1.0,      r"(al=?[^ ]+)?",                  ["pulse", "delay"],),
-    "h":     PAR("hatch",           str,    "",       r"(h=?[^ ]+)?",                   ["pulse", "delay"],),
-    "tr":    PAR("truncate_off",    bool,   False,    r"(troff)?",                      ["pulse", "delay"],),
-    "np":    PAR("npoints",         int,    100,      r"(np=?[0-9]+)?",                 ["pulse", "delay"],),
-    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"(pdx=?[^ ]+)?",                 ["pulse", "delay"],),
-    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"(pdy=?[^ ]+)?",                 ["pulse", "delay"],),
-    "pfs":   PAR("ph_fontsize",     float,  15.0,     r"(pfs=?[^ ]+)?",                 ["pulse", "delay"],),
-    "pkw":   PAR("phase_kw",        str,   "{}",      r"(pkw=?{.*?})?",                 ["pulse", "delay"],),
-    "o":     PAR("open",            bool,   False,    r"(o)?",                          ["pulse", "delay"],),  
-    "d":     PAR("time",            float,  None,     r"(d=?[^ ]+)?",                   ["delay",]),
-    "st":    PAR("start_time",      float,  None,     r"(st=?[^ ]+)?",                  ["pulse", "delay"],),
-    "f":     PAR("channel",         float,  0.0,      r"(f=?[^c ]+)?",                  ["pulse", "delay"],),
-    "tx":    PAR("text",            str,    None,     r"(tx[^`]=?[^ ]+|tx=?`.*?`)?",    ["pulse", "delay"],),
-    "tdx":   PAR("text_dx",         float,  0.0,      r"(tdx=?[^ ]+)?",                 ["pulse", "delay"],),
-    "tdy":   PAR("text_dy",         float,  0.0,      r"(tdy=?[^ ]+)?",                 ["pulse", "delay"],),
-    "tkw":   PAR("text_kw",         str,   "{}",      r"(tkw=?{.*?})?",                 ["pulse", "delay"],),
-    "tfs":   PAR("text_fontsize",   float,  15.0,     r"(tfs=?[^ ]+)?",                 ["pulse", "delay"],),
-    "n":     PAR("name",            str,    "",       r"(n=?[^p ]+)?",                  ["pulse", "delay"],),
-    "skw":   PAR("style_kw",        str,    "{}",     r"(skw=?{.*?})?",                 ["pulse", "delay"],),
+    "p":     PAR("plen",            float,  None,     r"p=?[^lhdkf =]+",                ["pulse"],),
+    "pl":    PAR("power",           float,  1.0,      r"pl=?[^ =]+",                    ["pulse", "delay"],),
+    "ph":    PAR("phase",           str,    None,     r"ph=?[^ =]+",                    ["pulse", "delay"],),
+    "sp":    PAR("shape",           None,   None,     r"sp=?[^ =]+",                    ["pulse", "delay"],),
+    "w":     PAR("wait",            bool,   False,    r"w(?=\s|$)",                     ["pulse", "delay"],),
+    "c":     PAR("centered",        bool,   False,    r"c(?=\s|$)",                     ["pulse", "delay"],),
+    "kc":    PAR("keep_centered",   bool,   False,    r"kc(?=\s|$)",                    ["pulse", "delay"],),
+    "fc":    PAR("facecolor",       str,    "white",  r"fc=?[^ =]+",                    ["pulse", "delay"],),
+    "ec":    PAR("edgecolor",       str,    "black",  r"ec=?[^ =]+",                    ["pulse", "delay"],),
+    "al":    PAR("alpha",           float,  1.0,      r"al=?[^ =]+",                    ["pulse", "delay"],),
+    "h":     PAR("hatch",           str,    "",       r"h=?[^ =]+",                     ["pulse", "delay"],),
+    "tr":    PAR("truncate_off",    bool,   False,    r"troff(?=\s|$)",                 ["pulse", "delay"],),
+    "np":    PAR("npoints",         int,    100,      r"np=?[0-9]+",                    ["pulse", "delay"],),
+    "pdx":   PAR("phtxt_dx",        float,  0.0,      r"pdx=?[^ =]+",                   ["pulse", "delay"],),
+    "pdy":   PAR("phtxt_dy",        float,  0.0,      r"pdy=?[^ =]+",                   ["pulse", "delay"],),
+    "pfs":   PAR("ph_fontsize",     float,  15.0,     r"pfs=?[^ =]+",                   ["pulse", "delay"],),
+    "pkw":   PAR("phase_kw",        str,   "{}",      r"pkw=?{.*?}",                    ["pulse", "delay"],),
+    "o":     PAR("open",            bool,   False,    r"o(?=\s|$)",                     ["pulse", "delay"],),
+    "d":     PAR("time",            float,  None,     r"d=?[^ =]+",                     ["delay",]),
+    "st":    PAR("start_time",      float,  None,     r"st=?[^ =]+",                    ["pulse", "delay"],),
+    "f":     PAR("channel",         float,  0.0,      r"f=?[^c =]+",                    ["pulse", "delay"],),
+    "tx":    PAR("text",            str,    None,     r"tx(?:=?`[^`]*`|=?[^ =][^ ]*)",  ["pulse", "delay"],),
+    "tdx":   PAR("text_dx",         float,  0.0,      r"tdx=?[^ =]+",                   ["pulse", "delay"],),
+    "tdy":   PAR("text_dy",         float,  0.0,      r"tdy=?[^ =]+",                   ["pulse", "delay"],),
+    "tkw":   PAR("text_kw",         str,   "{}",      r"tkw=?{.*?}",                    ["pulse", "delay"],),
+    "tfs":   PAR("text_fontsize",   float,  15.0,     r"tfs=?[^ =]+",                   ["pulse", "delay"],),
+    "n":     PAR("name",            str,    "",       r"n=?[^p =]+",                    ["pulse", "delay"],),
+    "skw":   PAR("style_kw",        str,    "{}",     r"skw=?{.*?}",                    ["pulse", "delay"],),
 }
+# fmt: on
+
 
 class ParseError(ValueError):
-    """Exception raised for parsing errors in pulse instructions."""
-    def __init__(self, message, instructions, span=None, suggestion=None):
+    """An invalid pulse instruction with its location in the source."""
+
+    def __init__(
+        self,
+        message,
+        instructions,
+        span=None,
+        suggestion=None,
+        line_number=None,
+        element_index=None,
+    ):
         super().__init__(message)
         self.instructions = instructions
-        self.span = span  # (start, end)
+        self.span = span
         self.suggestion = suggestion
+        self.line_number = line_number
+        self.element_index = element_index
 
     def __str__(self):
         if self.span is None:
             return super().__str__()
-        
+
         start, end = self.span
-        pointer = ' ' * start + '^' * (end - start)
-        msg = f"{self.instructions}\n{pointer}\n{super().__str__()}"
+        display_start = len(self.instructions[:start].expandtabs())
+        display_end = len(self.instructions[:end].expandtabs())
+        pointer = ' ' * display_start + '^' * max(1, display_end - display_start)
+
+        location = ''
+        if self.line_number is not None:
+            location = f"Line {self.line_number}, column {display_start + 1}:\n"
+        elif self.element_index is not None:
+            location = (
+                f"Element {self.element_index + 1}, "
+                f"column {display_start + 1}:\n"
+            )
+
+        msg = (
+            f"{location}{self.instructions.expandtabs()}\n"
+            f"{pointer}\n{super().__str__()}"
+        )
         if self.suggestion:
             msg += f"\nSuggestion: {self.suggestion}"
         return msg
 
 
-PATTERN = '|'.join([f"(?P<{k}>\\b{v.pattern[1:-2]})" for k, v in PARAMS.items()])
+TOKEN_PATTERNS = {
+    name: re.compile(param.pattern) for name, param in PARAMS.items()
+}
 
-def parse_base(instructions, params=None):
-    """
-    Basic parsing of a single line of instructions
-    using regexes
 
-    """
+def _error_span(instructions, start):
+    end = start
+    while end < len(instructions) and not instructions[end].isspace():
+        end += 1
+    return start, end
+
+
+def _match_parameter(instructions, position):
+    """Return the longest parameter match beginning at ``position``."""
+    matches = []
+    for name, pattern in TOKEN_PATTERNS.items():
+        match = pattern.match(instructions, position)
+        if match is None:
+            continue
+
+        end = match.end()
+        if end == len(instructions) or instructions[end].isspace():
+            matches.append((end, name, match))
+
+    if not matches:
+        return None, None
+
+    _, name, match = max(matches, key=lambda item: item[0])
+    return name, match
+
+
+def _parse_instruction(instructions, params=None):
+    """Parse one instruction, retaining parameter source spans."""
+    if not isinstance(instructions, str):
+        raise TypeError('Instructions must be a string')
     if params is None:
         params = {}
 
     userparams = {v.name: v.default for v in PARAMS.values()}
+    spans = {}
+    position = 0
 
-    last_end = 0
-    for match in re.finditer(PATTERN, instructions):
-        start, end = match.span()
-        
-        # Check for gaps between matches
-        gap = instructions[last_end:start]
-        if gap.strip():
-            # Find the actual non-whitespace part of the gap
-            gap_start = last_end + (len(gap) - len(gap.lstrip()))
-            gap_end = start
+    while position < len(instructions):
+        if instructions[position].isspace():
+            position += 1
+            continue
+
+        param, match = _match_parameter(instructions, position)
+        if match is None:
+            span = _error_span(instructions, position)
+            token = instructions[span[0]:span[1]]
             raise ParseError(
-                f"Unknown sequence: {gap[len(gap)-len(gap.rstrip()):].strip()}", 
-                instructions, 
-                (gap_start, gap_end)
+                f"Unknown or malformed parameter {token!r}",
+                instructions,
+                span,
             )
-        
-        k = match.lastgroup
+
         arg = match.group()
-        param_info = PARAMS[k]
+        param_info = PARAMS[param]
+        span = match.span()
 
         try:
-            # check external params dict
             value = params[arg]
-
-            if callable(param_info.type):
-                try:
-                    userparams[param_info.name] = param_info.type(value)
-                except ValueError:
-                    raise ParseError(
-                        f'Cannot cast external value {value} for {arg} to {param_info.type.__name__}', 
-                        instructions, 
-                        match.span()
-                    )
-            else:
-                userparams[param_info.name] = value
-
         except KeyError:
-            # special case for Boolean params
-            if arg == k:
-                userparams[param_info.name] = not param_info.default
+            if param_info.type is bool:
+                value = not param_info.default
             else:
-                if arg[len(k)] == '=':
-                    value = arg[len(k) + 1 :]
-                else:
-                    value = arg[len(k) :]
+                value = arg[len(param):]
+                if value.startswith('='):
+                    value = value[1:]
 
                 if callable(param_info.type):
                     try:
-                        userparams[param_info.name] = param_info.type(
-                            value
-                        )
-                    except ValueError:
+                        value = param_info.type(value)
+                    except (TypeError, ValueError, OverflowError) as exc:
                         raise ParseError(
-                            f'Cannot cast {arg} value {value} to {param_info.type.__name__}', 
-                            instructions, 
-                            match.span()
-                        )
-                else:
-                    userparams[param_info.name] = value
-        
-        last_end = end
+                            f"Invalid value {value!r} for parameter {param!r}; "
+                            f"expected {param_info.type.__name__}",
+                            instructions,
+                            span,
+                        ) from exc
+        else:
+            if callable(param_info.type):
+                try:
+                    value = param_info.type(value)
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise ParseError(
+                        f"Invalid external value {value!r} for parameter "
+                        f"{arg!r}; expected {param_info.type.__name__}",
+                        instructions,
+                        span,
+                    ) from exc
 
-    # Check for trailing gap
-    trailing_gap = instructions[last_end:]
-    if trailing_gap.strip():
-        gap_start = last_end + (len(trailing_gap) - len(trailing_gap.lstrip()))
-        gap_end = len(instructions)
+        userparams[param_info.name] = value
+        spans[param_info.name] = span
+        position = match.end()
+
+    if userparams['plen'] is not None and userparams['time'] is not None:
+        conflict_name = max(
+            ('plen', 'time'), key=lambda name: spans[name][0]
+        )
         raise ParseError(
-            f"Unknown sequence: {trailing_gap.strip()}", 
-            instructions, 
-            (gap_start, gap_end)
+            "A combination of a Pulse and a Delay is not allowed",
+            instructions,
+            spans[conflict_name],
         )
 
+    return userparams, spans
+
+
+def parse_base(instructions, params=None):
+    """Parse a single line of pulse or delay instructions."""
+    userparams, _ = _parse_instruction(instructions, params)
     return userparams
+
+
+def _parse_json_option(value, parameter, instructions, span):
+    """Decode a dictionary-valued option and report errors at its token."""
+    try:
+        try:
+            result = json.loads(value)
+        except json.decoder.JSONDecodeError:
+            result = json.loads(value.replace("'", '"'))
+    except (json.decoder.JSONDecodeError, TypeError) as exc:
+        raise ParseError(
+            f"Invalid dictionary for parameter {parameter!r}",
+            instructions,
+            span,
+        ) from exc
+
+    if not isinstance(result, dict):
+        raise ParseError(
+            f"Parameter {parameter!r} must contain a dictionary",
+            instructions,
+            span,
+        )
+
+    return result
 
 
 class Pulse(object):
@@ -183,13 +262,13 @@ class Pulse(object):
                 'All arguments without a keyword should be strings'
             )
 
-        args = parse_base(self.args, external_params)
+        args, spans = _parse_instruction(self.args, external_params)
 
-        # check that the parsing is OK, remove things that are not required
         if args['time'] is not None:
-
-            raise ValueError(
-                f'A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}'
+            raise ParseError(
+                "A delay parameter is not allowed in a Pulse",
+                self.args,
+                spans['time'],
             )
 
         if args['start_time'] is None:
@@ -202,17 +281,18 @@ class Pulse(object):
             if 'pulse' not in v.parents:
                 args.pop(v.name)
 
-        # handle keywords from string
-        for item in ['phase_kw', 'text_kw', 'style_kw']:
-            try:
-                # maybe json needs to be replaced with ast.literal_eval?
-                args[item] = json.loads(args[item])
-
-            except json.decoder.JSONDecodeError:
-                args[item] = json.loads(args[item].replace("'", '"'))
-
-            except json.decoder.JSONDecodeError as e:
-                raise ValueError(f'The input {args[item]} is not understood.')
+        # handle dictionary-valued keywords from the instruction string
+        for parameter, item in [
+            ('pkw', 'phase_kw'),
+            ('tkw', 'text_kw'),
+            ('skw', 'style_kw'),
+        ]:
+            args[item] = _parse_json_option(
+                args[item],
+                parameter,
+                self.args,
+                spans.get(item),
+            )
 
         try:
             if args['text'].startswith('`') and args['text'].endswith('`'):
@@ -439,12 +519,13 @@ class Delay(Pulse):
                 'All arguments without a keyword should be strings'
             )
 
-        args = parse_base(self.args, external_params)
+        args, spans = _parse_instruction(self.args, external_params)
 
-        # check that the parsig is OK, remove things that are not required
         if args['plen'] is not None:
-            raise ValueError(
-                f'A combination of a Pulse and a Delay is not allowed. Please check this input: {self.args}'
+            raise ParseError(
+                "A pulse parameter is not allowed in a Delay",
+                self.args,
+                spans['plen'],
             )
 
         if args['start_time'] is None:
@@ -457,15 +538,17 @@ class Delay(Pulse):
             if 'delay' not in v.parents:
                 args.pop(v.name)
 
-        for item in ['text_kw', 'phase_kw', 'style_kw']:
-            try:
-                args[item] = json.loads(args[item])
-
-            except json.decoder.JSONDecodeError:
-                args[item] = json.loads(args[item].replace("'", '"'))
-
-            except json.decoder.JSONDecodeError as e:
-                raise ValueError(f'The input {args[item]} is not understood.')
+        for parameter, item in [
+            ('tkw', 'text_kw'),
+            ('pkw', 'phase_kw'),
+            ('skw', 'style_kw'),
+        ]:
+            args[item] = _parse_json_option(
+                args[item],
+                parameter,
+                self.args,
+                spans.get(item),
+            )
 
         self.__dict__ = {**self.__dict__, **args, **params}
 
@@ -513,32 +596,44 @@ class PulseSeq(object):
 
         if isinstance(sequence, str):
             self.input_string = sequence
-            self.args = [i for i in sequence.split('\n') if i.strip()]
-            self.args = [i.split('#')[0] for i in self.args if i.split('#')[0]]
+            entries = []
+            for line_number, line in enumerate(sequence.split('\n'), start=1):
+                instruction = line.split('#', 1)[0]
+                if instruction.strip():
+                    entries.append((instruction, line_number))
+            self.args = [instruction for instruction, _ in entries]
+            locations = [line_number for _, line_number in entries]
 
         elif isinstance(sequence, list):
             self.args = sequence
+            locations = [None] * len(sequence)
+
+        else:
+            raise TypeError('A pulse sequence must be a string or a list')
 
         for i, arg in enumerate(self.args):
             if isinstance(arg, str):
                 try:
-                    element = Pulse(arg, external_params=external_params)
-
-                except ParseError:
+                    values, _ = _parse_instruction(arg, external_params)
+                    if values['plen'] is not None:
+                        element = Pulse(arg, external_params=external_params)
+                    elif values['time'] is not None:
+                        element = Delay(arg, external_params=external_params)
+                    else:
+                        span = _error_span(arg, len(arg) - len(arg.lstrip()))
+                        raise ParseError(
+                            "Expected a pulse ('p') or delay ('d') parameter",
+                            arg,
+                            span,
+                        )
+                except ParseError as error:
+                    if locations[i] is not None:
+                        error.line_number = locations[i]
+                    else:
+                        error.element_index = i
                     raise
 
-                except ValueError:
-                    try:
-                        element = Delay(arg, external_params=external_params)
-                    except ParseError:
-                        raise
-                    except ValueError:
-                        raise ValueError(f'Argument {arg} not understood.')
-
-                except:
-                    raise ValueError(f'Argument {arg} not understood.')
-
-            elif isinstance(arg, Pulse) or isinstance(arg, Delay):
+            elif isinstance(arg, (Pulse, Delay)):
                 element = arg
 
             else:
