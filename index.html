@@ -1,0 +1,1447 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <meta name="description" content="A visual pulse sequence builder and Python code generator for pulseplot.">
+  <title>pulseplot studio</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b12;
+      --panel: #101621;
+      --panel-2: #151d2b;
+      --panel-3: #1b2535;
+      --border: #2b3850;
+      --border-soft: #202b3d;
+      --text: #edf3ff;
+      --muted: #91a0b8;
+      --faint: #5f6d83;
+      --accent: #65e5c2;
+      --accent-2: #7ca7ff;
+      --danger: #ff758f;
+      --warning: #ffc66d;
+      --shadow: 0 18px 45px rgba(0, 0, 0, .32);
+      --radius: 14px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #edf2f8;
+      --panel: #ffffff;
+      --panel-2: #f7f9fc;
+      --panel-3: #eef3f8;
+      --border: #cbd5e1;
+      --border-soft: #dfe6ef;
+      --text: #172033;
+      --muted: #5d6b80;
+      --faint: #8491a3;
+      --accent: #087f68;
+      --accent-2: #245fc4;
+      --danger: #cf3352;
+      --warning: #a65a00;
+      --shadow: 0 18px 45px rgba(42, 55, 76, .14);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% -10%, color-mix(in srgb, var(--accent-2) 13%, transparent), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+    }
+    button, input, select, textarea { font: inherit; }
+    button, select, input { color: var(--text); }
+    button { touch-action: manipulation; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .app { height: 100%; display: grid; grid-template-rows: 58px minmax(0, 1fr); }
+    .topbar {
+      display: flex; align-items: center; gap: 16px; padding: 0 18px;
+      border-bottom: 1px solid var(--border-soft); background: color-mix(in srgb, var(--panel) 88%, transparent);
+      backdrop-filter: blur(16px); z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 230px; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px;
+      color: #07120f; background: linear-gradient(135deg, var(--accent), #75adff); font-weight: 900;
+      box-shadow: 0 8px 26px color-mix(in srgb, var(--accent) 24%, transparent);
+    }
+    .brand strong { display: block; font-size: 15px; letter-spacing: -.01em; }
+    .brand small { color: var(--muted); }
+    .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .status-pill {
+      display: flex; align-items: center; gap: 7px; padding: 6px 10px; border: 1px solid var(--border-soft);
+      border-radius: 999px; color: var(--muted); font-size: 12px;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+    .workspace { min-height: 0; display: grid; grid-template-columns: 270px minmax(520px, 1fr) 390px; }
+    .sidebar, .output-panel, .center { min-height: 0; }
+    .sidebar, .output-panel { background: color-mix(in srgb, var(--panel) 96%, transparent); overflow: auto; }
+    .sidebar { border-right: 1px solid var(--border-soft); }
+    .output-panel { border-left: 1px solid var(--border-soft); display: flex; flex-direction: column; }
+    .center { overflow: auto; padding: 16px; }
+
+    .section { padding: 16px; border-bottom: 1px solid var(--border-soft); }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .section-title { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: .11em; color: var(--muted); }
+    .help { color: var(--faint); font-size: 11px; line-height: 1.45; }
+
+    .btn {
+      border: 1px solid var(--border); background: var(--panel-2); color: var(--text); border-radius: 9px;
+      padding: 8px 11px; cursor: pointer; transition: .16s ease; display: inline-flex; align-items: center;
+      justify-content: center; gap: 7px; white-space: nowrap;
+    }
+    .btn:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); transform: translateY(-1px); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #06130f; font-weight: 750; }
+    .btn.danger { color: var(--danger); }
+    .btn.icon { width: 34px; height: 34px; padding: 0; }
+    .btn.tiny { padding: 5px 7px; font-size: 11px; border-radius: 7px; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .channel-list { display: grid; gap: 7px; }
+    .channel-item {
+      display: grid; grid-template-columns: 10px minmax(80px, 1fr) 48px auto; align-items: center; gap: 7px; padding: 8px;
+      border: 1px solid var(--border-soft); background: var(--panel-2); border-radius: 9px;
+    }
+    .channel-swatch { width: 9px; height: 28px; border-radius: 6px; }
+    .channel-item input { width: 100%; padding: 4px 6px; }
+
+    .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .palette-item {
+      min-height: 78px; border: 1px solid var(--border); border-radius: 11px; padding: 10px;
+      background: var(--panel-2); cursor: grab; user-select: none; transition: .16s ease;
+    }
+    .palette-item:hover { border-color: var(--accent-2); background: var(--panel-3); transform: translateY(-2px); }
+    .palette-item:active { cursor: grabbing; }
+    .palette-icon { height: 28px; display: flex; align-items: center; margin-bottom: 7px; color: var(--accent); }
+    .palette-item strong { display: block; font-size: 12px; }
+    .palette-item small { color: var(--muted); font-size: 10px; }
+    .pulse-icon { width: 48px; height: 22px; border: 2px solid currentColor; border-bottom: 0; }
+    .delay-icon { width: 48px; height: 16px; border-bottom: 2px solid currentColor; position: relative; }
+    .delay-icon::before, .delay-icon::after { content: ""; position: absolute; bottom: -5px; width: 2px; height: 10px; background: currentColor; }
+    .delay-icon::after { right: 0; }
+    .marker-icon { width: 2px; height: 27px; margin-left: 23px; background: currentColor; }
+    .shape-icon { width: 52px; height: 28px; }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field.span-2 { grid-column: 1 / -1; }
+    .field label { font-size: 11px; color: var(--muted); }
+    input, select, textarea {
+      width: 100%; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2);
+      padding: 8px 9px; color: var(--text); min-width: 0;
+    }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+    input[type="color"] { min-height: 36px; padding: 3px; }
+    input[type="range"] { padding: 0; accent-color: var(--accent); }
+    .check-field { display: flex; align-items: center; gap: 8px; padding-top: 19px; }
+
+    .canvas-card, .inspector-card {
+      background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .canvas-toolbar {
+      padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .toolbar-divider { width: 1px; height: 25px; background: var(--border-soft); margin: 0 2px; }
+    .zoom-label { color: var(--muted); font-size: 11px; margin-left: auto; }
+    .canvas-shell {
+      overflow: auto; min-height: 310px; background:
+        linear-gradient(135deg, color-mix(in srgb, var(--panel-2) 76%, transparent), var(--panel));
+      border-radius: 0 0 var(--radius) var(--radius); position: relative;
+    }
+    #sequenceCanvas { display: block; width: 100%; min-width: 740px; touch-action: none; user-select: none; }
+    #sequenceCanvas.drop-active { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+    .empty-hint {
+      position: absolute; inset: 0; display: none; place-items: center; pointer-events: none;
+      color: var(--muted); text-align: center;
+    }
+    .empty-hint.show { display: grid; }
+    .empty-hint div { border: 1px dashed var(--border); border-radius: 12px; padding: 18px 24px; }
+
+    .inspector-card { margin-top: 14px; padding: 14px; }
+    .inspector-empty { color: var(--muted); text-align: center; padding: 28px 12px; }
+    .inspector-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .inspector-head h2 { font-size: 14px; margin: 0; }
+    .type-badge { padding: 4px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .inspector-actions { margin-left: auto; display: flex; gap: 7px; }
+    .custom-shape { border: 1px solid var(--border-soft); background: var(--panel-2); border-radius: 10px; padding: 9px; }
+    #shapeEditor { display: block; width: 100%; height: 100px; touch-action: none; }
+
+    .output-head { padding: 12px 14px; border-bottom: 1px solid var(--border-soft); }
+    .output-head h2 { font-size: 13px; margin: 0 0 3px; }
+    .output-head p { font-size: 11px; color: var(--muted); margin: 0; }
+    .code-wrap { flex: 1; min-height: 240px; overflow: auto; background: #090e17; }
+    html[data-theme="light"] .code-wrap { background: #f7f9fc; }
+    pre { margin: 0; min-height: 100%; padding: 16px; font: 12px/1.65 var(--mono); tab-size: 4; white-space: pre; }
+    .tok-key { color: #ff7ab2; }
+    .tok-fn { color: #82aaff; }
+    .tok-str { color: #c3e88d; }
+    .tok-num { color: #f5c26b; }
+    .tok-comment { color: #66748a; font-style: italic; }
+    html[data-theme="light"] .tok-key { color: #a626a4; }
+    html[data-theme="light"] .tok-fn { color: #1d5fbf; }
+    html[data-theme="light"] .tok-str { color: #368a34; }
+    html[data-theme="light"] .tok-num { color: #986801; }
+    .output-actions { padding: 12px 14px; border-top: 1px solid var(--border-soft); display: grid; gap: 8px; }
+    .validation { padding: 10px 14px; border-top: 1px solid var(--border-soft); min-height: 43px; color: var(--muted); font-size: 11px; }
+    .validation.error { color: var(--danger); }
+    .validation.warning { color: var(--warning); }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 18px); opacity: 0; pointer-events: none;
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--panel-3);
+      color: var(--text); box-shadow: var(--shadow); transition: .2s ease; z-index: 50;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .kbd { font: 10px var(--mono); padding: 2px 5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; color: var(--muted); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 240px minmax(500px, 1fr) 330px; }
+    }
+    @media (max-width: 960px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: 100%; }
+      .workspace { grid-template-columns: 230px minmax(500px, 1fr); }
+      .output-panel { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border-soft); min-height: 480px; }
+      .code-wrap { min-height: 340px; }
+    }
+    @media (max-width: 720px) {
+      .topbar { padding: 0 10px; }
+      .brand { min-width: 0; }
+      .brand small, .status-pill, .top-actions .text-action { display: none; }
+      .workspace { display: block; }
+      .sidebar { border-right: 0; }
+      .section { padding: 12px; }
+      .center { padding: 10px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field.span-2 { grid-column: auto; }
+      .check-field { padding-top: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">p</div>
+        <div><strong>pulseplot studio</strong><small>visual sequence builder</small></div>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span id="saveStatus">Saved locally</span></div>
+      <div class="top-actions">
+        <button class="btn icon" id="undoBtn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">↶</button>
+        <button class="btn icon" id="redoBtn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo">↷</button>
+        <button class="btn text-action" id="importBtn">Import JSON</button>
+        <button class="btn text-action" id="exportJsonBtn">Save project</button>
+        <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="Builder controls">
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Channels</h2><button class="btn tiny" id="addChannelBtn">+ Add</button></div>
+          <div class="channel-list" id="channelList"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Elements</h2></div>
+          <div class="palette">
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="pulse" role="button">
+              <div class="palette-icon"><span class="pulse-icon"></span></div><strong>Hard pulse</strong><small>Rectangular</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="shaped" role="button">
+              <div class="palette-icon"><svg class="shape-icon" viewBox="0 0 52 28" aria-hidden="true"><path d="M1 27 C10 27 12 2 26 2 S42 27 51 27" fill="none" stroke="currentColor" stroke-width="2"/></svg></div><strong>Shaped pulse</strong><small>Gaussian & more</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="delay" role="button">
+              <div class="palette-icon"><span class="delay-icon"></span></div><strong>Delay</strong><small>Timed gap</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="marker" role="button">
+              <div class="palette-icon"><span class="marker-icon"></span></div><strong>Marker</strong><small>Zero length</small>
+            </div>
+          </div>
+          <p class="help">Drag onto the canvas, or click to append to the active channel.</p>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Templates</h2></div>
+          <div class="field"><label for="templateSelect">Example sequence</label><select id="templateSelect">
+            <option value="spinEcho">Basic 1D Spin-Echo</option>
+            <option value="hsqc">2D HSQC Block</option>
+            <option value="cpmas">Cross-Polarization (CP-MAS)</option>
+          </select></div>
+          <button class="btn" id="loadTemplateBtn" style="width:100%; margin-top:8px">Load template</button>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Plot settings</h2></div>
+          <div class="field-grid" id="settingsForm">
+            <div class="field span-2"><label for="plotTitle">Title</label><input id="plotTitle" data-setting="title" value="Pulse sequence"></div>
+            <div class="field"><label for="figureWidth">Figure width (in)</label><input id="figureWidth" data-setting="figureWidth" type="number" min="3" max="20" step="0.5"></div>
+            <div class="field"><label for="figureHeight">Figure height (in)</label><input id="figureHeight" data-setting="figureHeight" type="number" min="1" max="20" step="0.5"></div>
+            <div class="field"><label for="timeRange">Timeline maximum</label><input id="timeRange" data-setting="timeRange" type="number" min="1" step="1"></div>
+            <div class="field"><label for="snapSize">Snap increment</label><input id="snapSize" data-setting="snap" type="number" min="0.01" step="0.05"></div>
+            <div class="field"><label for="channelSpacing">Channel spacing</label><input id="channelSpacing" data-setting="channelSpacing" type="number" min="90" max="220" step="5"></div>
+            <div class="field"><label for="fontSize">Font size</label><input id="fontSize" data-setting="fontSize" type="number" min="8" max="28" step="1"></div>
+            <label class="check-field"><input id="gridToggle" data-setting="grid" type="checkbox"> Grid</label>
+            <label class="check-field"><input id="labelsToggle" data-setting="labels" type="checkbox"> Labels</label>
+          </div>
+        </section>
+      </aside>
+
+      <section class="center" aria-label="Sequence workspace">
+        <div class="canvas-card">
+          <div class="canvas-toolbar">
+            <button class="btn tiny" id="fitBtn">Fit timeline</button>
+            <button class="btn tiny" id="clearBtn">Clear</button>
+            <span class="toolbar-divider"></span>
+            <span class="help">Move <span class="kbd">←</span> <span class="kbd">→</span> · duplicate <span class="kbd">⌘/Ctrl D</span> · copy/paste <span class="kbd">⌘/Ctrl C/V</span> · <span class="kbd">Alt-drag</span> copy</span>
+            <span class="zoom-label" id="timelineSummary"></span>
+          </div>
+          <div class="canvas-shell" id="canvasShell">
+            <svg id="sequenceCanvas" role="application" aria-label="Interactive pulse sequence timeline"></svg>
+            <div class="empty-hint" id="emptyHint"><div>Drop a pulse, delay, or marker onto a channel</div></div>
+          </div>
+        </div>
+
+        <div class="inspector-card" id="inspector">
+          <div class="inspector-empty">Select an element to edit duration, amplitude, phase, text, and shape.</div>
+        </div>
+      </section>
+
+      <aside class="output-panel" aria-label="Generated output">
+        <div class="output-head"><h2>Live Python</h2><p>Generated for the current pulseplot API</p></div>
+        <div class="code-wrap"><pre><code id="codeOutput"></code></pre></div>
+        <div class="validation" id="validationMessage">Sequence is valid.</div>
+        <div class="output-actions">
+          <div class="button-grid">
+            <button class="btn primary" id="copyCodeBtn">Copy code</button>
+            <button class="btn" id="downloadCodeBtn">Download .py</button>
+            <button class="btn" id="exportSvgBtn">Export SVG</button>
+            <button class="btn" id="exportPngBtn">Export PNG</button>
+          </div>
+          <p class="help" style="margin:0">PNG export uses the selected figure dimensions at 300 pixels per inch.</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <input class="sr-only" id="projectFile" type="file" accept="application/json,.json">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const NS = "http://www.w3.org/2000/svg";
+    const STORAGE_KEY = "pulseplot-studio-v1";
+    const COLORS = ["#65e5c2", "#7ca7ff", "#f0a6ff", "#ffc66d", "#ff839b", "#73d7ff"];
+    const SHAPE_SPECS = {
+      gauss: { label: "Gaussian", params: [{ label: "Center", default: .5, step: .05 }, { label: "Sigma", default: .1667, min: .001, step: .01 }] },
+      ramp: { label: "Linear ramp", params: [{ label: "Percent", default: 40, min: -100, max: 100, step: 5 }] },
+      tan: { label: "Tangential ramp", params: [{ label: "Percent", default: 50, min: -100, max: 100, step: 5 }, { label: "Curvature", default: .1, min: .001, step: .01 }] },
+      fid: { label: "FID", params: [{ label: "Frequency", default: 10, step: 1 }, { label: "Decay", default: 5, min: 0, step: .5 }] },
+      fid2: { label: "Noisy FID", params: [{ label: "Frequency", default: 10, step: 1 }, { label: "Decay", default: 5, min: 0, step: .5 }] },
+      grad: { label: "Gradient", params: [{ label: "Rise exponent", default: 8, min: 1, step: 1 }] },
+      sine: { label: "Sine", params: [] },
+      grad2: { label: "Sine gradient", params: [] },
+      q3: { label: "Gaussian cascade Q3", params: [] },
+      q5: { label: "Gaussian cascade Q5", params: [] },
+      reburp: { label: "REBURP", params: [] },
+      sinc: { label: "Sinc (generated)", params: [{ label: "Lobe scale", default: 6, min: 1, step: .5 }] },
+      custom: { label: "Custom envelope", params: [] }
+    };
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const deepCopy = value => JSON.parse(JSON.stringify(value));
+    const uid = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const round = (value, places = 4) => Number(Number(value).toFixed(places));
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const esc = value => String(value ?? "").replace(/[&<>\"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[char]));
+
+    const defaults = {
+      settings: {
+        title: "Pulse sequence", figureWidth: 9, figureHeight: 4.5, timeRange: 20,
+        snap: .25, channelSpacing: 132, fontSize: 14, grid: true, labels: true, theme: "dark"
+      },
+      channels: [
+        { id: "ch-f1", name: "f1 · ¹H", value: 1, color: COLORS[0] },
+        { id: "ch-f2", name: "f2 · ¹³C", value: 2, color: COLORS[1] }
+      ],
+      elements: [], selectedId: null, activeChannelId: "ch-f1"
+    };
+
+    let state = deepCopy(defaults);
+    let undoStack = [];
+    let redoStack = [];
+    let interaction = null;
+    let shapeInteraction = null;
+    let copiedElement = null;
+    let pasteTarget = null;
+    let toastTimer = null;
+    let saveTimer = null;
+    let renderQueued = false;
+    let inspectorRenderPending = false;
+
+    const templates = {
+      spinEcho: {
+        settings: { title: "Basic 1D Spin-Echo", timeRange: 24, figureWidth: 9, figureHeight: 2.6 },
+        channels: [{ id: "ch-h", name: "f1 · ¹H", value: 1, color: COLORS[0] }],
+        elements: [
+          el("pulse", "ch-h", 1, 1, { amplitude: .8, phase: "1", text: "$90^\\circ$", facecolor: "#65e5c2" }),
+          el("delay", "ch-h", 2, 7, { text: "$\\tau$" }),
+          el("pulse", "ch-h", 9, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$", facecolor: "#65e5c2" }),
+          el("delay", "ch-h", 11, 7, { text: "$\\tau$" }),
+          el("shaped", "ch-h", 18, 4, { amplitude: .8, shape: "fid_12_4", phase: "rec", text: "acquire", facecolor: "#7ca7ff" })
+        ]
+      },
+      hsqc: {
+        settings: { title: "2D HSQC with reverse INEPT", timeRange: 45, figureWidth: 12, figureHeight: 5.2 },
+        channels: [
+          { id: "ch-h", name: "f1 · ¹H", value: 1, color: COLORS[0] },
+          { id: "ch-n", name: "f2 · ¹⁵N", value: 2, color: COLORS[1] }
+        ],
+        elements: [
+          // Forward INEPT transfer with simultaneous refocusing pulses.
+          el("pulse", "ch-h", 1, 1, { amplitude: .85, phase: "1", text: "$90^\\circ$" }),
+          el("delay", "ch-h", 2, 2, { text: "$\\tau$" }),
+          el("pulse", "ch-h", 4, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
+          el("pulse", "ch-n", 4, 2, { amplitude: .82, phase: "1", text: "$180^\\circ$", facecolor: COLORS[1] }),
+          el("delay", "ch-h", 6, 2, { text: "$\\tau$" }),
+          el("pulse", "ch-h", 8, 1, { amplitude: .82, phase: "_y", text: "$90^\\circ$" }),
+          el("pulse", "ch-n", 8, 1, { amplitude: .76, phase: "1", text: "$90^\\circ$", facecolor: COLORS[1] }),
+          // Indirect evolution with proton refocusing.
+          el("delay", "ch-n", 9, 6, { text: "$t_1$", facecolor: COLORS[1] }),
+          el("pulse", "ch-h", 11, 2, { amplitude: .9, phase: "2", text: "$180^\\circ$" }),
+          // Reverse INEPT transfer followed by refocusing and detection.
+          el("pulse", "ch-h", 18, 1, { amplitude: .85, phase: "1", text: "reverse INEPT" }),
+          el("pulse", "ch-n", 18, 1, { amplitude: .76, phase: "1", text: "$90^\\circ$", facecolor: COLORS[1] }),
+          el("delay", "ch-h", 19, 3, { text: "$\\tau$" }),
+          el("delay", "ch-n", 19, 3, { text: "$\\tau$", facecolor: COLORS[1] }),
+          el("pulse", "ch-h", 22, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
+          el("pulse", "ch-n", 22, 2, { amplitude: .82, phase: "2", text: "$180^\\circ$", facecolor: COLORS[1] }),
+          el("delay", "ch-h", 24, 3, { text: "$\\tau$" }),
+          el("delay", "ch-n", 24, 3, { text: "$\\tau$", facecolor: COLORS[1] }),
+          el("pulse", "ch-h", 27, 1, { amplitude: .82, phase: "_y", text: "$90^\\circ$" }),
+          el("pulse", "ch-n", 27, 1, { amplitude: .76, phase: "1", text: "$90^\\circ$", facecolor: COLORS[1] }),
+          el("delay", "ch-h", 28, 3, { text: "$\\tau$" }),
+          el("pulse", "ch-h", 31, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
+          el("pulse", "ch-n", 31, 2, { amplitude: .82, phase: "2", text: "$180^\\circ$", facecolor: COLORS[1] }),
+          el("delay", "ch-h", 33, 3, { text: "$\\tau$" }),
+          el("pulse", "ch-h", 36, 1, { amplitude: .82, phase: "1", text: "$90^\\circ$" }),
+          el("pulse", "ch-n", 37, 6, { amplitude: .35, text: "decoupling", facecolor: COLORS[1] }),
+          el("shaped", "ch-h", 37, 6, { amplitude: .8, shape: "fid_20_4", phase: "rec", text: "$t_2$" })
+        ]
+      },
+      cpmas: {
+        settings: { title: "Cross-Polarization (CP-MAS)", timeRange: 20, figureWidth: 10, figureHeight: 4.5 },
+        channels: [
+          { id: "ch-h", name: "f1 · ¹H", value: 1, color: COLORS[0] },
+          { id: "ch-c", name: "f2 · ¹³C", value: 2, color: COLORS[1] }
+        ],
+        elements: [
+          el("pulse", "ch-h", 1, 1, { amplitude: .85, phase: "1", text: "$90^\\circ$" }),
+          el("shaped", "ch-h", 2, 7, { amplitude: .8, shape: "ramp_-30", phase: "_x", text: "CP", allowOverlap: true }),
+          el("pulse", "ch-c", 2, 7, { amplitude: .62, phase: "2", text: "CP", allowOverlap: true, facecolor: COLORS[1] }),
+          el("pulse", "ch-h", 9, 8, { amplitude: .42, text: "decoupling", allowOverlap: true }),
+          el("shaped", "ch-c", 9, 8, { amplitude: .72, shape: "fid_18_4", phase: "rec", text: "acquire", allowOverlap: true, facecolor: COLORS[1] })
+        ]
+      }
+    };
+
+    function el(type, channel, start, duration, extra = {}) {
+      return {
+        id: uid("el"), type, channel, start, duration, amplitude: type === "delay" ? .45 : .75,
+        phase: "", text: "", shape: type === "shaped" ? "gauss" : "",
+        facecolor: "#65e5c2", edgecolor: "#000000",
+        truncateOff: false, tdx: 0, tdy: 0, tfs: 14, pdx: 0, pdy: 0, pfs: 14, allowOverlap: true,
+        customPoints: [[0, 0], [.2, .3], [.5, 1], [.8, .3], [1, 0]], ...extra
+      };
+    }
+
+    function normalizeState(candidate) {
+      const result = deepCopy(defaults);
+      if (!candidate || typeof candidate !== "object") return result;
+      result.settings = { ...result.settings, ...(candidate.settings || {}) };
+      result.channels = Array.isArray(candidate.channels) && candidate.channels.length
+        ? candidate.channels.map((channel, i) => ({ id: channel.id || uid("ch"), name: channel.name || `f${i + 1}`, value: Number(channel.value ?? i + 1), color: channel.color || COLORS[i % COLORS.length] }))
+        : result.channels;
+      const channelIds = new Set(result.channels.map(channel => channel.id));
+      result.elements = Array.isArray(candidate.elements) ? candidate.elements
+        .filter(item => item && channelIds.has(item.channel))
+        .map(item => {
+          const normalized = { ...el(item.type || "pulse", item.channel, Number(item.start) || 0, Number(item.duration) || 0), ...item, id: item.id || uid("el") };
+          normalized.facecolor = item.facecolor || item.color || result.channels.find(channel => channel.id === item.channel)?.color || COLORS[0];
+          normalized.edgecolor = item.edgecolor || "#000000";
+          delete normalized.color;
+          return normalized;
+        }) : [];
+      result.activeChannelId = channelIds.has(candidate.activeChannelId) ? candidate.activeChannelId : result.channels[0].id;
+      result.selectedId = result.elements.some(item => item.id === candidate.selectedId) ? candidate.selectedId : null;
+      return result;
+    }
+
+    function loadStored() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) state = normalizeState(JSON.parse(stored));
+      } catch (error) {
+        console.warn("Could not restore saved project", error);
+        state = deepCopy(defaults);
+      }
+      document.documentElement.dataset.theme = state.settings.theme || "dark";
+    }
+
+    function snapshot() { return JSON.stringify({ settings: state.settings, channels: state.channels, elements: state.elements, selectedId: state.selectedId, activeChannelId: state.activeChannelId }); }
+    function checkpoint() {
+      const current = snapshot();
+      if (undoStack[undoStack.length - 1] !== current) undoStack.push(current);
+      if (undoStack.length > 80) undoStack.shift();
+      redoStack = [];
+      updateUndoButtons();
+    }
+    function restore(serialized) {
+      state = normalizeState(JSON.parse(serialized));
+      document.documentElement.dataset.theme = state.settings.theme;
+      renderAll();
+    }
+    function undo() {
+      if (!undoStack.length) return;
+      redoStack.push(snapshot());
+      restore(undoStack.pop());
+      updateUndoButtons();
+    }
+    function redo() {
+      if (!redoStack.length) return;
+      undoStack.push(snapshot());
+      restore(redoStack.pop());
+      updateUndoButtons();
+    }
+    function updateUndoButtons() {
+      $("#undoBtn").disabled = !undoStack.length;
+      $("#redoBtn").disabled = !redoStack.length;
+    }
+
+    function changed({ history = false, inspector = true } = {}) {
+      if (history) checkpoint();
+      $("#saveStatus").textContent = "Saving…";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try { localStorage.setItem(STORAGE_KEY, snapshot()); $("#saveStatus").textContent = "Saved locally"; }
+        catch { $("#saveStatus").textContent = "Local save unavailable"; }
+      }, 180);
+      queueRender(inspector);
+    }
+
+    function queueRender(inspector = true) {
+      inspectorRenderPending = inspectorRenderPending || inspector;
+      if (renderQueued) return;
+      renderQueued = true;
+      requestAnimationFrame(() => {
+        renderQueued = false;
+        const shouldRenderInspector = inspectorRenderPending;
+        inspectorRenderPending = false;
+        renderCanvas();
+        renderChannels();
+        renderSettings();
+        if (shouldRenderInspector) renderInspector();
+        renderCode();
+        updateUndoButtons();
+      });
+    }
+    function renderAll() { renderCanvas(); renderChannels(); renderSettings(); renderInspector(); renderCode(); updateUndoButtons(); }
+
+    function svgEl(name, attrs = {}, text = null) {
+      const node = document.createElementNS(NS, name);
+      Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+      if (text !== null) node.textContent = text;
+      return node;
+    }
+
+    function canvasMetrics() {
+      const width = Math.max(820, $("#canvasShell").clientWidth || 820);
+      const left = 104, right = 28, top = 48, bottom = 34;
+      const height = top + bottom + state.channels.length * state.settings.channelSpacing;
+      const plotWidth = width - left - right;
+      return { width, height, left, right, top, bottom, plotWidth, xScale: plotWidth / Math.max(1, state.settings.timeRange) };
+    }
+
+    function channelAtY(y, metrics = canvasMetrics()) {
+      const index = clamp(Math.floor((y - metrics.top) / state.settings.channelSpacing), 0, state.channels.length - 1);
+      return state.channels[index];
+    }
+    function channelY(channelId, metrics = canvasMetrics()) {
+      const index = Math.max(0, state.channels.findIndex(channel => channel.id === channelId));
+      return metrics.top + index * state.settings.channelSpacing + state.settings.channelSpacing / 2;
+    }
+    function snap(value) { return round(Math.round(value / state.settings.snap) * state.settings.snap); }
+    function maxEnd() { return state.elements.reduce((max, item) => Math.max(max, item.start + Math.max(0, item.duration)), 0); }
+    function selected() { return state.elements.find(item => item.id === state.selectedId) || null; }
+
+    function parseShape(shape) {
+      const [rawName, ...rawParams] = String(shape || "gauss").split("_");
+      const name = SHAPE_SPECS[rawName] ? rawName : "gauss";
+      const spec = SHAPE_SPECS[name];
+      const params = spec.params.map((parameter, index) => {
+        const value = Number(rawParams[index]);
+        return Number.isFinite(value) ? value : parameter.default;
+      });
+      return { name, params, spec };
+    }
+
+    function composeShape(name, params = []) {
+      if (name === "custom") return "custom";
+      const spec = SHAPE_SPECS[name] || SHAPE_SPECS.gauss;
+      if (!spec.params.length) return name;
+      return `${name}_${spec.params.map((parameter, index) => formatNum(Number.isFinite(params[index]) ? params[index] : parameter.default)).join("_")}`;
+    }
+
+    function shapeValues(item, samples = 36) {
+      const { name, params } = parseShape(item.shape);
+      const values = [];
+      for (let i = 0; i <= samples; i++) {
+        const x = i / samples;
+        let y;
+        if (name === "ramp") {
+          const percent = params[0] / 100, depth = Math.abs(percent);
+          y = percent >= 0 ? 1 - depth + depth * x : 1 - depth * x;
+        } else if (name === "sine" || name === "grad2") y = Math.max(0, Math.sin(Math.PI * x));
+        else if (name === "sinc") y = Math.abs(sinc((x - .5) * params[0]));
+        else if (name === "fid" || name === "fid2") {
+          y = Math.exp(-params[1] * x) * Math.cos(2 * Math.PI * params[0] * x);
+          if (name === "fid2") y += Math.sin(i * 12.9898) * .05;
+        } else if (name === "grad") y = Math.exp(-Math.pow(Math.abs(x - .5) / .5, params[0]));
+        else if (name === "tan") {
+          const percent = params[0], curvature = Math.max(.001, params[1]);
+          const unit = (Math.sinh((x - .5) / curvature) - Math.sinh(-.5 / curvature)) / (Math.sinh(.5 / curvature) - Math.sinh(-.5 / curvature));
+          const depth = Math.abs(percent) / 100;
+          y = percent >= 0 ? 1 - depth + depth * unit : 1 - depth * unit;
+        }
+        else if (name === "q3" || name === "q5") y = Math.pow(Math.sin(Math.PI * x), name === "q3" ? 1.5 : 2.3);
+        else if (name === "reburp") {
+          const coefficients = [.49, -1.02, 1.11, -1.57, .83, -.42, .26, -.16, .10, -.07, .04, -.03, .01, -.02, 0, -.01];
+          y = coefficients.reduce((sum, coefficient, n) => sum + coefficient * Math.cos(n * x * 16), 0);
+        }
+        else if (name === "custom") y = interpolate(item.customPoints, x);
+        else y = Math.exp(-Math.pow(x - params[0], 2) / (2 * Math.pow(Math.max(.001, params[1]), 2)));
+        values.push([x, y]);
+      }
+      if (["gauss", "fid", "fid2", "grad", "reburp"].includes(name)) {
+        const low = Math.min(...values.map(point => point[1]));
+        const high = Math.max(...values.map(point => point[1]));
+        values.forEach(point => { point[1] = (point[1] - low) / Math.max(1e-9, high - low); });
+      }
+      return values.map(([x, y]) => [x, clamp(y, 0, 1.35)]);
+    }
+    function sinc(x) { return Math.abs(x) < 1e-9 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x); }
+    function interpolate(points, x) {
+      const sorted = [...points].sort((a, b) => a[0] - b[0]);
+      if (x <= sorted[0][0]) return sorted[0][1];
+      for (let i = 1; i < sorted.length; i++) {
+        if (x <= sorted[i][0]) {
+          const [x0, y0] = sorted[i - 1], [x1, y1] = sorted[i];
+          return y0 + (y1 - y0) * ((x - x0) / Math.max(.0001, x1 - x0));
+        }
+      }
+      return sorted[sorted.length - 1][1];
+    }
+
+    function displayMath(text) {
+      return String(text || "")
+        .replaceAll("$", "").replace(/\\phi/g, "φ").replace(/\\tau/g, "τ").replace(/\\Delta/g, "Δ")
+        .replace(/\^\\circ/g, "°").replace(/_\{([^}]+)\}/g, "$1").replace(/_([A-Za-z0-9]+)/g, "$1");
+    }
+
+    function renderCanvas({ clean = false, exportWidth = null } = {}) {
+      const svg = clean ? svgEl("svg") : $("#sequenceCanvas");
+      const m = canvasMetrics();
+      const width = exportWidth || m.width;
+      const scale = width / m.width;
+      const height = m.height * scale;
+      svg.replaceChildren();
+      svg.setAttribute("xmlns", NS);
+      svg.setAttribute("viewBox", `0 0 ${m.width} ${m.height}`);
+      svg.setAttribute("width", width);
+      svg.setAttribute("height", height);
+      svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+      svg.style.background = clean ? "#ffffff" : "transparent";
+
+      const styles = getComputedStyle(document.documentElement);
+      const textColor = clean ? "#172033" : styles.getPropertyValue("--text").trim();
+      const muted = clean ? "#667085" : styles.getPropertyValue("--muted").trim();
+      const border = clean ? "#d7dde6" : styles.getPropertyValue("--border").trim();
+      const grid = clean ? "#e8edf3" : styles.getPropertyValue("--border-soft").trim();
+      const selectedColor = styles.getPropertyValue("--accent-2").trim();
+
+      if (clean) svg.append(svgEl("rect", { x: 0, y: 0, width: m.width, height: m.height, fill: "#ffffff" }));
+      svg.append(svgEl("title", {}, state.settings.title));
+      if (state.settings.title) svg.append(svgEl("text", { x: m.left, y: 25, fill: textColor, "font-family": "system-ui, sans-serif", "font-weight": 700, "font-size": 16 }, state.settings.title));
+
+      if (state.settings.grid) {
+        const step = chooseGridStep(state.settings.timeRange);
+        for (let t = 0; t <= state.settings.timeRange + 1e-8; t += step) {
+          const x = m.left + t * m.xScale;
+          svg.append(svgEl("line", { x1: x, y1: m.top - 10, x2: x, y2: m.height - m.bottom, stroke: grid, "stroke-width": t === 0 ? 1.5 : 1, "stroke-dasharray": t === 0 ? "" : "3 5" }));
+          svg.append(svgEl("text", { x, y: m.height - 11, fill: muted, "text-anchor": "middle", "font-size": 10, "font-family": "system-ui, sans-serif" }, formatNum(t)));
+        }
+      }
+
+      state.channels.forEach(channel => {
+        const y = channelY(channel.id, m);
+        const active = channel.id === state.activeChannelId;
+        if (!clean && active) svg.append(svgEl("rect", { x: 0, y: y - state.settings.channelSpacing / 2 + 3, width: m.width, height: state.settings.channelSpacing - 6, fill: channel.color, opacity: .035 }));
+        svg.append(svgEl("line", { x1: m.left, y1: y, x2: m.width - m.right, y2: y, stroke: clean ? "#667085" : border, "stroke-width": 1.3 }));
+        if (state.settings.labels) {
+          svg.append(svgEl("rect", { x: 13, y: y - 16, width: 74, height: 32, rx: 8, fill: clean ? "#f4f6f8" : channel.color, opacity: clean ? 1 : .13, stroke: clean ? "#d7dde6" : channel.color }));
+          svg.append(svgEl("circle", { cx: 24, cy: y, r: 4, fill: channel.color }));
+          svg.append(svgEl("text", { x: 34, y: y + 4, fill: textColor, "font-size": 11, "font-family": "system-ui, sans-serif" }, channel.name));
+        }
+      });
+
+      [...state.elements].sort((a, b) => a.start - b.start).forEach(item => {
+        const channel = state.channels.find(c => c.id === item.channel);
+        if (!channel) return;
+        const y = channelY(item.channel, m);
+        const x = m.left + item.start * m.xScale;
+        const w = Math.max(item.type === "marker" ? 1 : 3, item.duration * m.xScale);
+        const h = clamp(item.amplitude, .05, 1.5) * 58;
+        const isSelected = !clean && item.id === state.selectedId;
+        const group = svgEl("g", { "data-element-id": item.id, tabindex: clean ? -1 : 0, role: clean ? "img" : "button", "aria-label": `${item.type} at ${formatNum(item.start)}` });
+        group.style.cursor = clean ? "default" : "move";
+
+        if (item.type === "delay") {
+          // Delays are gaps on the existing channel baseline. The transparent
+          // hit area keeps an unlabelled delay selectable without drawing it.
+          group.append(svgEl("rect", { x, y: y - 13, width: w, height: 26, fill: "transparent" }));
+        } else if (item.type === "marker") {
+          group.append(svgEl("line", { x1: x, y1: y - 48, x2: x, y2: y + 17, stroke: item.edgecolor, "stroke-width": 2 }));
+          group.append(svgEl("rect", { x: x - 7, y: y - 49, width: 14, height: 67, fill: "transparent" }));
+        } else if (item.type === "shaped") {
+          const points = shapeValues(item);
+          const shapeName = parseShape(item.shape).name;
+          const truncated = item.truncateOff || shapeName === "fid" || shapeName === "fid2";
+          const path = [];
+          if (truncated) {
+            points.forEach(([px, py], index) => path.push(`${index ? "L" : "M"} ${x + px * w} ${y - py * h}`));
+          } else {
+            path.push(`M ${x} ${y}`);
+            points.forEach(([px, py]) => path.push(`L ${x + px * w} ${y - py * h}`));
+            path.push(`L ${x + w} ${y} Z`);
+          }
+          group.append(svgEl("path", { d: path.join(" "), fill: truncated ? "none" : item.facecolor, "fill-opacity": .72, stroke: item.edgecolor, "stroke-width": 1.6 }));
+        } else {
+          group.append(svgEl("rect", { x, y: y - h, width: w, height: h, rx: 2, fill: item.facecolor, "fill-opacity": .78, stroke: item.edgecolor, "stroke-width": 1.6 }));
+        }
+
+        const fontSize = item.tfs || state.settings.fontSize;
+        if (item.text) group.append(svgEl("text", { x: x + w / 2 + item.tdx * m.xScale, y: y - h / 2 - item.tdy * 18, fill: textColor, "font-size": fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, displayMath(item.text)));
+        if (item.phase) {
+          const phaseText = item.phase.startsWith("_") ? item.phase.slice(1) : `φ${item.phase}`;
+          group.append(svgEl("text", { x: x + w / 2 + item.pdx * m.xScale, y: y - h - 9 - item.pdy * 18, fill: textColor, "font-size": item.pfs || state.settings.fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, phaseText));
+        }
+
+        if (isSelected) {
+          const outlineX = item.type === "marker" ? x - 8 : x - 4;
+          const outlineW = item.type === "marker" ? 16 : w + 8;
+          group.append(svgEl("rect", { x: outlineX, y: y - Math.max(h, 49) - 5, width: outlineW, height: Math.max(h, 49) + 27, rx: 5, fill: "none", stroke: selectedColor, "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" }));
+          if (item.type !== "marker") {
+            group.append(svgEl("rect", { x: x + w - 5, y: y - 12, width: 10, height: 24, rx: 3, fill: selectedColor, "data-handle": "duration", style: "cursor:ew-resize" }));
+          }
+          if (item.type === "pulse" || item.type === "shaped") group.append(svgEl("circle", { cx: x + w / 2, cy: y - h, r: 6, fill: selectedColor, "data-handle": "amplitude", style: "cursor:ns-resize" }));
+        }
+        svg.append(group);
+      });
+
+      if (!clean) {
+        $("#emptyHint").classList.toggle("show", !state.elements.length);
+        $("#timelineSummary").textContent = `${state.channels.length} channel${state.channels.length === 1 ? "" : "s"} · ${state.elements.length} element${state.elements.length === 1 ? "" : "s"} · 0–${formatNum(state.settings.timeRange)}`;
+      }
+      return svg;
+    }
+
+    function chooseGridStep(range) {
+      if (range <= 10) return 1;
+      if (range <= 30) return 2;
+      if (range <= 70) return 5;
+      return 10;
+    }
+
+    function renderChannels() {
+      const list = $("#channelList");
+      if (list.contains(document.activeElement)) return;
+      list.innerHTML = state.channels.map((channel, index) => `
+        <div class="channel-item" data-channel-id="${esc(channel.id)}">
+          <span class="channel-swatch" style="background:${esc(channel.color)}"></span>
+          <input aria-label="Channel ${index + 1} name" data-channel-name value="${esc(channel.name)}">
+          <input aria-label="Channel ${index + 1} f value" data-channel-value type="number" step="1" value="${esc(channel.value)}" title="pulseplot f value">
+          <button class="btn tiny danger" data-remove-channel title="Remove channel" ${state.channels.length === 1 ? "disabled" : ""}>×</button>
+        </div>`).join("");
+    }
+
+    function renderSettings() {
+      $$('[data-setting]').forEach(input => {
+        const key = input.dataset.setting;
+        if (document.activeElement === input) return;
+        if (input.type === "checkbox") input.checked = Boolean(state.settings[key]);
+        else input.value = state.settings[key];
+      });
+      document.documentElement.dataset.theme = state.settings.theme;
+    }
+
+    function shapeControlsHtml(item) {
+      const { name, params, spec } = parseShape(item.shape);
+      const options = Object.entries(SHAPE_SPECS).map(([value, shape]) =>
+        `<option value="${value}" ${value === name ? "selected" : ""}>${esc(shape.label)}</option>`
+      ).join("");
+      const parameterFields = spec.params.map((parameter, index) => `
+        <div class="field"><label>${esc(parameter.label)}</label><input data-shape-param="${index}" type="number" value="${params[index]}" step="${parameter.step ?? .1}" ${parameter.min !== undefined ? `min="${parameter.min}"` : ""} ${parameter.max !== undefined ? `max="${parameter.max}"` : ""}></div>
+      `).join("");
+      return `
+        <div class="field span-2"><label>Shape family (sp)</label><select data-shape-name>${options}</select></div>
+        ${parameterFields}
+        ${spec.params.length ? `<div class="field span-2"><label>Generated pulseplot shape</label><input data-shape-preview value="${esc(composeShape(name, params))}" readonly></div>` : ""}`;
+    }
+
+    function renderInspector() {
+      const root = $("#inspector");
+      const item = selected();
+      if (!item) {
+        root.innerHTML = '<div class="inspector-empty">Select an element to edit duration, amplitude, phase, text, and shape.</div>';
+        return;
+      }
+      const isPulse = item.type === "pulse" || item.type === "shaped";
+      root.innerHTML = `
+        <div class="inspector-head">
+          <span class="type-badge">${esc(item.type)}</span><h2>Element inspector</h2>
+          <div class="inspector-actions"><button class="btn tiny" data-inspector-action="duplicate">Duplicate</button><button class="btn tiny danger" data-inspector-action="delete">Delete</button></div>
+        </div>
+        <div class="field-grid">
+          <div class="field"><label>Channel</label><select data-prop="channel">${state.channels.map(channel => `<option value="${esc(channel.id)}" ${channel.id === item.channel ? "selected" : ""}>${esc(channel.name)}</option>`).join("")}</select></div>
+          <div class="field"><label>Start time (st)</label><input data-prop="start" type="number" min="0" step="${state.settings.snap}" value="${item.start}"></div>
+          ${item.type !== "marker" ? `<div class="field"><label>${item.type === "delay" ? "Delay length (d)" : "Duration (p)"}</label><input data-prop="duration" type="number" min="${state.settings.snap}" step="${state.settings.snap}" value="${item.duration}"></div>` : ""}
+          ${isPulse ? `<div class="field"><label>Power / amplitude (pl)</label><input data-prop="amplitude" type="number" min="0.05" max="1.5" step="0.05" value="${item.amplitude}"></div>` : ""}
+          <div class="field"><label>Phase (ph)</label><input data-prop="phase" value="${esc(item.phase)}" placeholder="1, rec, or _x"></div>
+          ${item.type !== "delay" ? `<div class="field"><label>Face color (fc)</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : ""}
+          ${item.type !== "delay" ? `<div class="field"><label>Edge color (ec)</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : ""}
+          <div class="field span-2"><label>Annotation (tx) · LaTeX accepted</label><input data-prop="text" value="${esc(item.text)}" placeholder="$\\tau$, $90^\\circ$, CP"></div>
+          <div class="field"><label>Text x offset (tdx)</label><input data-prop="tdx" type="number" step="0.1" value="${item.tdx}"></div>
+          <div class="field"><label>Text y offset (tdy)</label><input data-prop="tdy" type="number" step="0.1" value="${item.tdy}"></div>
+          <div class="field"><label>Text size (tfs)</label><input data-prop="tfs" type="number" min="6" max="40" value="${item.tfs}"></div>
+          <div class="field"><label>Phase x offset (pdx)</label><input data-prop="pdx" type="number" step="0.1" value="${item.pdx}"></div>
+          <div class="field"><label>Phase y offset (pdy)</label><input data-prop="pdy" type="number" step="0.1" value="${item.pdy}"></div>
+          <div class="field"><label>Phase size (pfs)</label><input data-prop="pfs" type="number" min="6" max="40" value="${item.pfs}"></div>
+          ${item.type === "shaped" ? shapeControlsHtml(item) : ""}
+          ${item.type === "shaped" ? `<label class="check-field field span-2"><input data-prop="truncateOff" type="checkbox" ${item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name) ? "checked" : ""} ${["fid", "fid2"].includes(parseShape(item.shape).name) ? "disabled" : ""}> Truncate baseline edges (troff)${["fid", "fid2"].includes(parseShape(item.shape).name) ? " · automatic for FID" : ""}</label>` : ""}
+          <label class="check-field field span-2"><input data-prop="allowOverlap" type="checkbox" ${item.allowOverlap ? "checked" : ""}> Allow this element to overlap others</label>
+          ${item.type === "shaped" && parseShape(item.shape).name === "custom" ? `<div class="field span-2 custom-shape"><label>Custom envelope · drag points</label><svg id="shapeEditor" viewBox="0 0 480 100" aria-label="Custom shape curve editor"></svg></div>` : ""}
+        </div>`;
+      if (item.type === "shaped" && parseShape(item.shape).name === "custom") renderShapeEditor(item);
+    }
+
+    function renderShapeEditor(item) {
+      const svg = $("#shapeEditor");
+      if (!svg) return;
+      const pad = 9, width = 480, height = 100;
+      svg.replaceChildren();
+      svg.append(svgEl("line", { x1: pad, y1: height - pad, x2: width - pad, y2: height - pad, stroke: "var(--border)", "stroke-width": 1 }));
+      const points = item.customPoints.map(([x, y]) => [pad + x * (width - pad * 2), height - pad - y * (height - pad * 2)]);
+      svg.append(svgEl("polyline", { points: points.map(p => p.join(",")).join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
+      points.forEach(([x, y], index) => svg.append(svgEl("circle", { cx: x, cy: y, r: 6, fill: "var(--accent-2)", stroke: "var(--panel)", "stroke-width": 2, "data-point-index": index, style: "cursor:move" })));
+    }
+
+    function formatNum(value) {
+      const number = round(value);
+      return Number.isInteger(number) ? String(number) : String(number);
+    }
+
+    function overlaps(candidate, ignoreId = candidate.id) {
+      if (candidate.allowOverlap || candidate.type === "marker") return null;
+      const a0 = candidate.start, a1 = candidate.start + candidate.duration;
+      return state.elements.find(other => {
+        if (other.id === ignoreId || other.channel !== candidate.channel || other.type === "marker") return false;
+        const b0 = other.start, b1 = other.start + other.duration;
+        return a0 < b1 - 1e-8 && a1 > b0 + 1e-8;
+      }) || null;
+    }
+
+    function nextOpenStart(item) {
+      let start = Math.max(0, snap(item.start));
+      const occupied = state.elements.filter(other => other.channel === item.channel && other.type !== "marker").sort((a, b) => a.start - b.start);
+      let moved = true;
+      while (moved) {
+        moved = false;
+        for (const other of occupied) {
+          if (start < other.start + other.duration && start + item.duration > other.start) {
+            start = snap(other.start + other.duration);
+            moved = true;
+          }
+        }
+      }
+      return start;
+    }
+
+    function addElement(kind, channelId = state.activeChannelId, start = null) {
+      checkpoint();
+      const type = kind === "shaped" ? "shaped" : kind;
+      const duration = type === "marker" ? 0 : type === "delay" ? 2 : 1.5;
+      const channelElements = state.elements.filter(item => item.channel === channelId);
+      const defaultStart = channelElements.reduce((max, item) => Math.max(max, item.start + item.duration), 0);
+      const item = el(type, channelId, start === null ? defaultStart : Math.max(0, snap(start)), duration, {
+        shape: type === "shaped" ? "gauss" : "",
+        facecolor: state.channels.find(channel => channel.id === channelId)?.color || COLORS[0],
+        edgecolor: "#000000"
+      });
+      if (overlaps(item)) item.start = nextOpenStart(item);
+      state.elements.push(item);
+      state.selectedId = item.id;
+      state.activeChannelId = channelId;
+      if (item.start + item.duration > state.settings.timeRange) state.settings.timeRange = Math.ceil(item.start + item.duration + 2);
+      changed();
+      toast(`${type[0].toUpperCase() + type.slice(1)} added`);
+    }
+
+    function deleteSelected() {
+      if (!state.selectedId) return;
+      checkpoint();
+      state.elements = state.elements.filter(item => item.id !== state.selectedId);
+      state.selectedId = null;
+      changed();
+    }
+    function duplicateSelected() {
+      const item = selected();
+      if (!item) return;
+      checkpoint();
+      const clone = { ...deepCopy(item), id: uid("el"), start: snap(item.start + item.duration + state.settings.snap) };
+      if (overlaps(clone)) clone.start = nextOpenStart(clone);
+      state.elements.push(clone);
+      state.selectedId = clone.id;
+      changed();
+    }
+
+    function copySelected() {
+      const item = selected();
+      if (!item) return;
+      copiedElement = deepCopy(item);
+      toast(`${item.type[0].toUpperCase() + item.type.slice(1)} copied`);
+    }
+
+    function pasteCopied() {
+      if (!copiedElement) return;
+      checkpoint();
+      const clone = {
+        ...deepCopy(copiedElement),
+        id: uid("el"),
+        channel: pasteTarget?.channel || state.activeChannelId,
+        start: pasteTarget ? Math.max(0, snap(pasteTarget.start)) : snap(copiedElement.start + Math.max(state.settings.snap, copiedElement.duration))
+      };
+      state.elements.push(clone);
+      state.selectedId = clone.id;
+      state.activeChannelId = clone.channel;
+      changed();
+      toast(`${clone.type[0].toUpperCase() + clone.type.slice(1)} pasted`);
+    }
+
+    function pulseToken(item, includeShape = true, colorAlias = "") {
+      const channel = state.channels.find(c => c.id === item.channel);
+      const parts = [item.type === "delay" ? `d=${formatNum(item.duration)}` : `p=${formatNum(item.type === "marker" ? 0 : item.duration)}`];
+      if (item.type !== "delay" && item.type !== "marker") parts.push(`pl=${formatNum(item.amplitude)}`);
+      parts.push(`f=${formatNum(channel?.value ?? 0)}`, `st=${formatNum(item.start)}`);
+      if (item.phase.trim()) parts.push(`ph=${safeToken(item.phase)}`);
+      if (item.text.trim()) parts.push(`tx=\`${safeText(item.text)}\``);
+      if (item.tdx) parts.push(`tdx=${formatNum(item.tdx)}`);
+      if (item.tdy) parts.push(`tdy=${formatNum(item.tdy)}`);
+      if (item.tfs !== 14) parts.push(`tfs=${formatNum(item.tfs)}`);
+      if (item.pdx) parts.push(`pdx=${formatNum(item.pdx)}`);
+      if (item.pdy) parts.push(`pdy=${formatNum(item.pdy)}`);
+      if (item.pfs !== 14) parts.push(`pfs=${formatNum(item.pfs)}`);
+      if (includeShape && item.type === "shaped" && item.shape) parts.push(`sp=${safeToken(item.shape)}`);
+      if (item.type === "shaped" && (item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name))) parts.push("troff");
+      if (colorAlias && item.type !== "delay") parts.push(`fc_${colorAlias}`, `ec_${colorAlias}`);
+      return parts.join(" ");
+    }
+    function safeToken(value) { return String(value).trim().replace(/\s+/g, "_").replace(/[`#]/g, ""); }
+    function safeText(value) { return String(value).replace(/`/g, "'").replace(/\r?\n/g, " ").replace(/#/g, "＃"); }
+    function pyList(values) { return `[${values.map(value => formatNum(value)).join(", ")}]`; }
+    function isCustomShape(item) { return item.type === "shaped" && ["custom", "sinc"].includes(parseShape(item.shape).name); }
+
+    function inferGapDelays(items, channelId) {
+      const result = [];
+      let cursor = null;
+      items.forEach(item => {
+        if (cursor !== null && item.start > cursor + 1e-8) {
+          result.push({
+            id: `auto-gap-${channelId}-${formatNum(cursor)}`,
+            type: "delay", channel: channelId, start: cursor, duration: round(item.start - cursor),
+            phase: "", text: "", tdx: 0, tdy: 0, tfs: 14, pdx: 0, pdy: 0, pfs: 14
+          });
+        }
+        result.push(item);
+        const end = item.start + Math.max(0, item.duration);
+        cursor = cursor === null ? end : Math.max(cursor, end);
+      });
+      return result;
+    }
+
+    function generatePython() {
+      const needsNumpy = state.elements.some(isCustomShape);
+      const lines = ["import pulseplot as pplot", "import matplotlib.pyplot as plt"];
+      if (needsNumpy) lines.push("import numpy as np");
+      lines.push("", `fig, ax = pplot.subplots(`, `    nrows=${state.channels.length},`, "    ncols=1,", "    sharex=True,", "    squeeze=False,", `    figsize=(${formatNum(state.settings.figureWidth)}, ${formatNum(state.settings.figureHeight)}),`, ")", "axes = ax[:, 0]", "");
+
+      state.channels.forEach((channel, index) => {
+        const channelItems = state.elements.filter(item => item.channel === channel.id).sort((a, b) => a.start - b.start);
+        const items = inferGapDelays(channelItems, channel.id);
+        const standard = items.filter(item => !isCustomShape(item));
+        const custom = items.filter(isCustomShape);
+        const colorAliases = new Map();
+        standard.filter(item => item.type !== "delay").forEach((item, colorIndex) => {
+          const alias = `color_${index}_${colorIndex}`;
+          colorAliases.set(item.id, alias);
+        });
+        lines.push(`# Channel ${index + 1}: ${channel.name.replace(/\n/g, " ")}`);
+        lines.push(`axes[${index}].draw_channels(${formatNum(channel.value)})`);
+        lines.push(`axes[${index}].set_title(${pythonQuote(channel.name)}, fontsize=${formatNum(state.settings.fontSize)})`);
+        lines.push(`axes[${index}].fontsize = ${formatNum(state.settings.fontSize)}`);
+        standard.filter(item => colorAliases.has(item.id)).forEach(item => {
+          const alias = colorAliases.get(item.id);
+          lines.push(`axes[${index}].params["fc_${alias}"] = ${pythonQuote(item.facecolor)}`);
+          lines.push(`axes[${index}].params["ec_${alias}"] = ${pythonQuote(item.edgecolor)}`);
+        });
+        if (standard.length) {
+          lines.push(`axes[${index}].pseq(r"""`);
+          standard.forEach(item => lines.push(pulseToken(item, true, colorAliases.get(item.id) || "")));
+          lines.push('""")');
+        }
+        custom.forEach(item => {
+          let shape;
+          const parsedShape = parseShape(item.shape);
+          if (parsedShape.name === "sinc") shape = `lambda x: np.abs(np.sinc(${formatNum(parsedShape.params[0])} * (x - 0.5)))`;
+          else {
+            const points = [...item.customPoints].sort((a, b) => a[0] - b[0]);
+            shape = `lambda x: np.interp(x, ${pyList(points.map(point => point[0]))}, ${pyList(points.map(point => point[1]))})`;
+          }
+          lines.push(`axes[${index}].pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}, facecolor=${pythonQuote(item.facecolor)}, edgecolor=${pythonQuote(item.edgecolor)})`);
+        });
+        lines.push(`axes[${index}].set_xlim(0, ${formatNum(state.settings.timeRange)})`);
+        if (state.settings.grid) lines.push(`axes[${index}].grid(axis="x", alpha=0.18)`);
+        lines.push("");
+      });
+      if (state.settings.title) lines.push(`fig.suptitle(${pythonQuote(state.settings.title)}, fontsize=${formatNum(state.settings.fontSize + 2)})`);
+      lines.push("plt.tight_layout()", 'plt.savefig("pulse_sequence.png", dpi=300)', "plt.show()", "");
+      return lines.join("\n");
+    }
+
+    function pythonQuote(value) { return JSON.stringify(String(value)).replace(/\\u2028|\\u2029/g, ""); }
+    function pythonRawString(value) { return String(value).replace(/"/g, '\\"').replace(/\r?\n/g, " "); }
+
+    function highlightPython(code) {
+      const escaped = code.replace(/[&<>]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[char]));
+      const stash = [];
+      let tokenized = escaped.replace(/(r?"""[\s\S]*?"""|r?"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g, match => {
+        stash.push(`<span class="tok-str">${match}</span>`);
+        return `\u0000${"x".repeat(stash.length)}\u0000`;
+      });
+      tokenized = tokenized.replace(/(^|\s)(#.*)$/gm, (_, lead, comment) => `${lead}<span class="tok-comment">${comment}</span>`);
+      tokenized = tokenized.replace(/\b(import|as|from|lambda)\b/g, '<span class="tok-key">$1</span>');
+      tokenized = tokenized.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
+      tokenized = tokenized.replace(/\b(pplot|plt|pseq|pulse|draw_channels|set_title|set_xlim|grid|savefig|show|tight_layout|interp|sinc)\b/g, '<span class="tok-fn">$1</span>');
+      return tokenized.replace(/\u0000(x+)\u0000/g, (_, marker) => stash[marker.length - 1]);
+    }
+
+    function validateState() {
+      const problems = [];
+      state.elements.forEach(item => {
+        if (item.start < 0) problems.push(`${item.type} has a negative start time`);
+        if (item.type !== "marker" && item.duration <= 0) problems.push(`${item.type} has a non-positive duration`);
+        const conflict = overlaps(item);
+        if (conflict && item.id.localeCompare(conflict.id) < 0) problems.push(`Overlap at t=${formatNum(Math.max(item.start, conflict.start))} on ${state.channels.find(c => c.id === item.channel)?.name}`);
+      });
+      return problems;
+    }
+
+    function renderCode() {
+      const code = generatePython();
+      $("#codeOutput").innerHTML = highlightPython(code);
+      const problems = validateState();
+      const message = $("#validationMessage");
+      message.className = `validation${problems.length ? " warning" : ""}`;
+      message.textContent = problems.length ? problems.join(" · ") : "Sequence is valid.";
+    }
+
+    function pointerToSvg(event, svg = $("#sequenceCanvas")) {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX; point.y = event.clientY;
+      return point.matrixTransform(svg.getScreenCTM().inverse());
+    }
+
+    function beginCanvasInteraction(event) {
+      const group = event.target.closest("[data-element-id]");
+      if (!group || event.button > 0) return;
+      event.preventDefault();
+      const checkpointState = snapshot();
+      let item = state.elements.find(candidate => candidate.id === group.dataset.elementId);
+      if (!item) return;
+      if (event.altKey) {
+        item = { ...deepCopy(item), id: uid("el") };
+        state.elements.push(item);
+      }
+      state.selectedId = item.id;
+      state.activeChannelId = item.channel;
+      const handle = event.target.dataset.handle;
+      const point = pointerToSvg(event);
+      interaction = { id: item.id, mode: handle || "move", origin: point, initial: deepCopy(item), checkpoint: checkpointState, invalid: false };
+      $("#sequenceCanvas").setPointerCapture(event.pointerId);
+      renderAll();
+    }
+
+    function moveCanvasInteraction(event) {
+      if (!interaction) return;
+      const item = state.elements.find(candidate => candidate.id === interaction.id);
+      if (!item) return;
+      const point = pointerToSvg(event), m = canvasMetrics();
+      const dx = (point.x - interaction.origin.x) / m.xScale;
+      if (interaction.mode === "duration") item.duration = Math.max(state.settings.snap, snap(interaction.initial.duration + dx));
+      else if (interaction.mode === "amplitude") {
+        const dy = interaction.origin.y - point.y;
+        item.amplitude = round(clamp(interaction.initial.amplitude + dy / 58, .05, 1.5), 2);
+      } else {
+        item.start = Math.max(0, snap(interaction.initial.start + dx));
+        const channel = channelAtY(point.y, m);
+        item.channel = channel.id;
+        state.activeChannelId = channel.id;
+      }
+      interaction.invalid = Boolean(overlaps(item));
+      renderCanvas(); renderInspector(); renderCode();
+    }
+
+    function endCanvasInteraction() {
+      if (!interaction) return;
+      const item = state.elements.find(candidate => candidate.id === interaction.id);
+      if (item && interaction.invalid) {
+        Object.assign(item, interaction.initial);
+        toast("Move rejected: elements cannot overlap unless overlap is enabled");
+      } else if (snapshot() !== interaction.checkpoint) {
+        undoStack.push(interaction.checkpoint);
+        redoStack = [];
+      }
+      interaction = null;
+      changed();
+    }
+
+    function handleDrop(event) {
+      event.preventDefault();
+      $("#sequenceCanvas").classList.remove("drop-active");
+      const kind = event.dataTransfer?.getData("text/pulseplot-kind");
+      if (!kind) return;
+      const point = pointerToSvg(event);
+      const m = canvasMetrics();
+      const channel = channelAtY(point.y, m);
+      const time = snap((point.x - m.left) / m.xScale);
+      addElement(kind, channel.id, time);
+    }
+
+    function renderShapeDrag(event) {
+      if (!shapeInteraction) return;
+      const item = selected();
+      const svg = $("#shapeEditor");
+      if (!item || !svg) return;
+      const point = pointerToSvg(event, svg), pad = 9;
+      const x = clamp((point.x - pad) / (480 - pad * 2), 0, 1);
+      const y = clamp((100 - pad - point.y) / (100 - pad * 2), 0, 1);
+      const index = shapeInteraction.index;
+      item.customPoints[index] = [index === 0 ? 0 : index === item.customPoints.length - 1 ? 1 : round(x, 3), round(y, 3)];
+      item.customPoints.sort((a, b) => a[0] - b[0]);
+      renderShapeEditor(item); renderCanvas(); renderCode();
+    }
+
+    function download(name, blob) {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = name; anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function cleanSvgString() {
+      const svg = renderCanvas({ clean: true });
+      svg.setAttribute("width", Math.round(state.settings.figureWidth * 96));
+      svg.setAttribute("height", Math.round(state.settings.figureHeight * 96));
+      svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(svg)}`;
+    }
+
+    async function exportPng() {
+      const svgText = cleanSvgString();
+      const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      try {
+        const image = new Image();
+        await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
+        const m = canvasMetrics();
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(state.settings.figureWidth * 300);
+        canvas.height = Math.round(state.settings.figureHeight * 300);
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
+        const fit = Math.min(canvas.width / m.width, canvas.height / m.height);
+        const drawWidth = m.width * fit, drawHeight = m.height * fit;
+        context.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
+        const png = await new Promise(resolve => canvas.toBlob(resolve, "image/png", 1));
+        download("pulse_sequence.png", png);
+        toast("High-resolution PNG exported");
+      } catch {
+        toast("PNG export failed in this browser");
+      } finally { URL.revokeObjectURL(url); }
+    }
+
+    function loadTemplate(name) {
+      if (state.elements.length && !confirm("Replace the current workspace with this template?")) return;
+      checkpoint();
+      const template = deepCopy(templates[name]);
+      state.settings = { ...deepCopy(defaults.settings), ...template.settings, theme: state.settings.theme };
+      state.channels = template.channels;
+      state.elements = template.elements;
+      state.selectedId = state.elements[0]?.id || null;
+      state.activeChannelId = state.channels[0].id;
+      changed();
+      toast("Template loaded");
+    }
+
+    function toast(message) {
+      const node = $("#toast");
+      node.textContent = message; node.classList.add("show");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => node.classList.remove("show"), 2400);
+    }
+
+    function bindEvents() {
+      $("#addChannelBtn").addEventListener("click", () => {
+        checkpoint();
+        const number = state.channels.length + 1;
+        const channel = { id: uid("ch"), name: `f${number}`, value: number, color: COLORS[(number - 1) % COLORS.length] };
+        state.channels.push(channel); state.activeChannelId = channel.id; changed();
+      });
+
+      $("#channelList").addEventListener("focusin", event => {
+        if (event.target.matches("[data-channel-name], [data-channel-value]")) event.target.dataset.before = snapshot();
+      });
+      $("#channelList").addEventListener("input", event => {
+        const row = event.target.closest("[data-channel-id]");
+        if (!row || !event.target.matches("[data-channel-name], [data-channel-value]")) return;
+        const channel = state.channels.find(item => item.id === row.dataset.channelId);
+        if (channel) {
+          if (event.target.matches("[data-channel-name]")) channel.name = event.target.value;
+          else channel.value = Number(event.target.value);
+          changed({ inspector: false });
+        }
+      });
+      $("#channelList").addEventListener("change", event => {
+        const row = event.target.closest("[data-channel-id]");
+        if (row) state.activeChannelId = row.dataset.channelId;
+        const before = event.target.dataset.before;
+        if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; updateUndoButtons(); }
+      });
+      $("#channelList").addEventListener("click", event => {
+        const row = event.target.closest("[data-channel-id]");
+        if (!row) return;
+        state.activeChannelId = row.dataset.channelId;
+        if (event.target.matches("[data-remove-channel]")) {
+          if (state.channels.length === 1) return;
+          const count = state.elements.filter(item => item.channel === row.dataset.channelId).length;
+          if (count && !confirm(`Remove this channel and its ${count} element${count === 1 ? "" : "s"}?`)) return;
+          checkpoint();
+          state.channels = state.channels.filter(item => item.id !== row.dataset.channelId);
+          state.elements = state.elements.filter(item => item.channel !== row.dataset.channelId);
+          state.activeChannelId = state.channels[0].id;
+          if (!state.elements.some(item => item.id === state.selectedId)) state.selectedId = null;
+        }
+        changed();
+      });
+
+      $$(".palette-item").forEach(item => {
+        item.addEventListener("dragstart", event => { event.dataTransfer.setData("text/pulseplot-kind", item.dataset.kind); event.dataTransfer.effectAllowed = "copy"; });
+        item.addEventListener("click", () => addElement(item.dataset.kind));
+        item.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); addElement(item.dataset.kind); } });
+      });
+
+      $("#settingsForm").addEventListener("focusin", event => { if (event.target.matches("[data-setting]")) event.target.dataset.before = snapshot(); });
+      $("#settingsForm").addEventListener("input", event => {
+        const input = event.target;
+        if (!input.matches("[data-setting]")) return;
+        const key = input.dataset.setting;
+        state.settings[key] = input.type === "checkbox" ? input.checked : input.type === "number" ? Number(input.value) : input.value;
+        changed({ inspector: false });
+      });
+      $("#settingsForm").addEventListener("change", event => {
+        const before = event.target.dataset.before;
+        if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; }
+        updateUndoButtons();
+      });
+
+      const svg = $("#sequenceCanvas");
+      svg.addEventListener("pointerdown", beginCanvasInteraction);
+      svg.addEventListener("pointermove", moveCanvasInteraction);
+      svg.addEventListener("pointerup", endCanvasInteraction);
+      svg.addEventListener("pointercancel", endCanvasInteraction);
+      svg.addEventListener("click", event => {
+        const group = event.target.closest("[data-element-id]");
+        if (group) { state.selectedId = group.dataset.elementId; state.activeChannelId = selected()?.channel || state.activeChannelId; }
+        else {
+          const point = pointerToSvg(event), metrics = canvasMetrics();
+          const channel = channelAtY(point.y, metrics);
+          state.selectedId = null;
+          state.activeChannelId = channel.id;
+          pasteTarget = { channel: channel.id, start: (point.x - metrics.left) / metrics.xScale };
+        }
+        renderAll();
+      });
+      svg.addEventListener("dragover", event => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; svg.classList.add("drop-active"); });
+      svg.addEventListener("dragleave", () => svg.classList.remove("drop-active"));
+      svg.addEventListener("drop", handleDrop);
+
+      $("#inspector").addEventListener("focusin", event => {
+        if (event.target.matches("[data-prop], [data-shape-name], [data-shape-param]")) event.target.dataset.before = snapshot();
+      });
+      $("#inspector").addEventListener("input", event => {
+        const item = selected();
+        if (!item) return;
+        if (event.target.matches("[data-shape-param]")) {
+          const parsed = parseShape(item.shape);
+          parsed.params[Number(event.target.dataset.shapeParam)] = Number(event.target.value);
+          item.shape = composeShape(parsed.name, parsed.params);
+          const preview = $("[data-shape-preview]", $("#inspector"));
+          if (preview) preview.value = item.shape;
+          changed({ inspector: false });
+          return;
+        }
+        if (!event.target.matches("[data-prop]")) return;
+        const key = event.target.dataset.prop;
+        const previous = item[key];
+        item[key] = event.target.type === "checkbox" ? event.target.checked : event.target.type === "number" ? Number(event.target.value) : event.target.value;
+        if (overlaps(item)) {
+          item[key] = previous;
+          event.target.value = previous;
+          event.target.checked = Boolean(previous);
+          toast("Change rejected because it would overlap another element");
+        }
+        if (key === "channel") state.activeChannelId = item.channel;
+        changed({ inspector: false });
+      });
+      $("#inspector").addEventListener("change", event => {
+        const item = selected();
+        const before = event.target.dataset.before;
+        if (item && event.target.matches("[data-shape-name]")) {
+          const name = event.target.value;
+          item.shape = composeShape(name, SHAPE_SPECS[name].params.map(parameter => parameter.default));
+          if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; }
+          updateUndoButtons();
+          changed();
+          return;
+        }
+        if (item && event.target.matches("[data-shape-param]")) {
+          const parsed = parseShape(item.shape);
+          parsed.params[Number(event.target.dataset.shapeParam)] = Number(event.target.value);
+          item.shape = composeShape(parsed.name, parsed.params);
+          if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; }
+          updateUndoButtons();
+          changed();
+          return;
+        }
+        if (item && event.target.matches("[data-prop]")) {
+          const key = event.target.dataset.prop;
+          item[key] = event.target.type === "checkbox" ? event.target.checked : event.target.type === "number" ? Number(event.target.value) : event.target.value;
+        }
+        if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; }
+        updateUndoButtons();
+      });
+      $("#inspector").addEventListener("click", event => {
+        const action = event.target.dataset.inspectorAction;
+        if (action === "delete") deleteSelected();
+        if (action === "duplicate") duplicateSelected();
+      });
+      $("#inspector").addEventListener("pointerdown", event => {
+        const point = event.target.closest("[data-point-index]");
+        if (!point) return;
+        event.preventDefault();
+        shapeInteraction = { index: Number(point.dataset.pointIndex), before: snapshot() };
+        $("#shapeEditor").setPointerCapture(event.pointerId);
+      });
+      $("#inspector").addEventListener("pointermove", renderShapeDrag);
+      $("#inspector").addEventListener("pointerup", () => {
+        if (!shapeInteraction) return;
+        if (shapeInteraction.before !== snapshot()) { undoStack.push(shapeInteraction.before); redoStack = []; }
+        shapeInteraction = null; changed();
+      });
+
+      $("#loadTemplateBtn").addEventListener("click", () => loadTemplate($("#templateSelect").value));
+      $("#fitBtn").addEventListener("click", () => {
+        checkpoint(); state.settings.timeRange = Math.max(5, Math.ceil(maxEnd() + 2)); changed();
+      });
+      $("#clearBtn").addEventListener("click", () => {
+        if (state.elements.length && !confirm("Clear every element from the canvas?")) return;
+        checkpoint(); state.elements = []; state.selectedId = null; changed();
+      });
+      $("#undoBtn").addEventListener("click", undo);
+      $("#redoBtn").addEventListener("click", redo);
+      $("#themeBtn").addEventListener("click", () => { state.settings.theme = state.settings.theme === "dark" ? "light" : "dark"; changed(); });
+
+      $("#copyCodeBtn").addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(generatePython()); toast("Python copied to clipboard"); }
+        catch { toast("Clipboard unavailable; select the code manually"); }
+      });
+      $("#downloadCodeBtn").addEventListener("click", () => download("pulse_sequence.py", new Blob([generatePython()], { type: "text/x-python;charset=utf-8" })));
+      $("#exportSvgBtn").addEventListener("click", () => { download("pulse_sequence.svg", new Blob([cleanSvgString()], { type: "image/svg+xml;charset=utf-8" })); toast("SVG exported"); });
+      $("#exportPngBtn").addEventListener("click", exportPng);
+      $("#exportJsonBtn").addEventListener("click", () => download("pulseplot-project.json", new Blob([JSON.stringify(JSON.parse(snapshot()), null, 2)], { type: "application/json" })));
+      $("#importBtn").addEventListener("click", () => $("#projectFile").click());
+      $("#projectFile").addEventListener("change", async event => {
+        const file = event.target.files[0]; if (!file) return;
+        try { checkpoint(); state = normalizeState(JSON.parse(await file.text())); changed(); toast("Project imported"); }
+        catch { toast("That file is not a valid pulseplot project"); }
+        event.target.value = "";
+      });
+
+      window.addEventListener("resize", () => queueRender(false));
+      document.addEventListener("keydown", event => {
+        const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName);
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") { event.preventDefault(); redo(); return; }
+        if (!typing && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d") { event.preventDefault(); duplicateSelected(); return; }
+        if (!typing && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") { event.preventDefault(); copySelected(); return; }
+        if (!typing && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "v") { event.preventDefault(); pasteCopied(); return; }
+        if (typing) return;
+        const item = selected();
+        if ((event.key === "Delete" || event.key === "Backspace") && item) { event.preventDefault(); deleteSelected(); return; }
+        if (!item || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+        event.preventDefault(); checkpoint();
+        const original = deepCopy(item);
+        if (event.key === "ArrowLeft") item.start = Math.max(0, snap(item.start - state.settings.snap));
+        if (event.key === "ArrowRight") item.start = snap(item.start + state.settings.snap);
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+          const index = state.channels.findIndex(channel => channel.id === item.channel);
+          const next = clamp(index + (event.key === "ArrowUp" ? -1 : 1), 0, state.channels.length - 1);
+          item.channel = state.channels[next].id; state.activeChannelId = item.channel;
+        }
+        if (overlaps(item)) { Object.assign(item, original); undoStack.pop(); toast("Move rejected because it would overlap another element"); }
+        changed();
+      });
+    }
+
+    loadStored();
+    bindEvents();
+    renderAll();
+  })();
+  </script>
+</body>
+</html>
