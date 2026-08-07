@@ -84,11 +84,11 @@
     }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
-    .workspace { min-height: 0; display: grid; grid-template-columns: 270px minmax(520px, 1fr) 390px; }
-    .sidebar, .output-panel, .center { min-height: 0; }
-    .sidebar, .output-panel { background: color-mix(in srgb, var(--panel) 96%, transparent); overflow: auto; }
+    .workspace { min-height: 0; display: grid; grid-template-columns: 270px minmax(520px, 1fr) minmax(440px, 31vw); }
+    .sidebar, .inspector-panel, .center { min-height: 0; }
+    .sidebar, .inspector-panel { background: color-mix(in srgb, var(--panel) 96%, transparent); overflow: auto; }
     .sidebar { border-right: 1px solid var(--border-soft); }
-    .output-panel { border-left: 1px solid var(--border-soft); display: flex; flex-direction: column; }
+    .inspector-panel { border-left: 1px solid var(--border-soft); }
     .center { overflow: auto; padding: 16px; }
 
     .section { padding: 16px; border-bottom: 1px solid var(--border-soft); }
@@ -148,7 +148,7 @@
     input[type="range"] { padding: 0; accent-color: var(--accent); }
     .check-field { display: flex; align-items: center; gap: 8px; padding-top: 19px; }
 
-    .canvas-card, .inspector-card {
+    .canvas-card, .code-card {
       background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); box-shadow: var(--shadow);
     }
     .canvas-toolbar {
@@ -164,6 +164,7 @@
     }
     #sequenceCanvas { display: block; width: 100%; min-width: 740px; touch-action: none; user-select: none; }
     #sequenceCanvas.drop-active { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+    #sequenceCanvas g[data-element-type="delay"]:hover .delay-hit { fill: color-mix(in srgb, var(--accent-2) 12%, transparent); }
     .empty-hint {
       position: absolute; inset: 0; display: none; place-items: center; pointer-events: none;
       color: var(--muted); text-align: center;
@@ -171,19 +172,37 @@
     .empty-hint.show { display: grid; }
     .empty-hint div { border: 1px dashed var(--border); border-radius: 12px; padding: 18px 24px; }
 
-    .inspector-card { margin-top: 14px; padding: 14px; }
-    .inspector-empty { color: var(--muted); text-align: center; padding: 28px 12px; }
-    .inspector-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .inspector-head h2 { font-size: 14px; margin: 0; }
+    #inspector { min-height: 100%; padding: 12px; }
+    .inspector-empty { color: var(--muted); text-align: center; padding: 48px 18px; line-height: 1.5; }
+    .inspector-head {
+      position: sticky; top: -12px; z-index: 5; display: flex; align-items: center; gap: 8px;
+      margin: -12px -12px 12px; padding: 12px; border-bottom: 1px solid var(--border-soft);
+      background: color-mix(in srgb, var(--panel) 96%, transparent); backdrop-filter: blur(12px);
+    }
+    .inspector-head h2 { font-size: 13px; margin: 0; }
     .type-badge { padding: 4px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
     .inspector-actions { margin-left: auto; display: flex; gap: 7px; }
+    .inspector-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px 6px; align-items: end; }
+    .inspector-grid .field { gap: 3px; }
+    .inspector-grid .field.wide-2 { grid-column: span 2; }
+    .inspector-grid .field.wide-3 { grid-column: span 3; }
+    .inspector-grid .field.wide-4 { grid-column: span 4; }
+    .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
+    .inspector-grid .field label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .inspector-grid input, .inspector-grid select { height: 30px; padding: 4px 6px; border-radius: 6px; font-size: 12px; }
+    .inspector-grid input[type="color"] { min-height: 30px; padding: 2px; }
+    .inspector-grid .check-field { align-self: center; min-height: 30px; padding-top: 0; font-size: 11px; color: var(--muted); }
     .custom-shape { border: 1px solid var(--border-soft); background: var(--panel-2); border-radius: 10px; padding: 9px; }
     #shapeEditor { display: block; width: 100%; height: 100px; touch-action: none; }
 
-    .output-head { padding: 12px 14px; border-bottom: 1px solid var(--border-soft); }
+    .code-card { margin-top: 14px; overflow: hidden; }
+    .output-head { padding: 10px 12px; border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; gap: 10px; }
+    .output-title { min-width: 0; }
     .output-head h2 { font-size: 13px; margin: 0 0 3px; }
     .output-head p { font-size: 11px; color: var(--muted); margin: 0; }
-    .code-wrap { flex: 1; min-height: 240px; overflow: auto; background: #090e17; }
+    .code-toggle { margin-left: auto; }
+    .code-card.collapsed .code-body { display: none; }
+    .code-wrap { height: clamp(190px, 28vh, 330px); overflow: auto; background: #090e17; }
     html[data-theme="light"] .code-wrap { background: #f7f9fc; }
     pre { margin: 0; min-height: 100%; padding: 16px; font: 12px/1.65 var(--mono); tab-size: 4; white-space: pre; }
     .tok-key { color: #ff7ab2; }
@@ -195,7 +214,7 @@
     html[data-theme="light"] .tok-fn { color: #1d5fbf; }
     html[data-theme="light"] .tok-str { color: #368a34; }
     html[data-theme="light"] .tok-num { color: #986801; }
-    .output-actions { padding: 12px 14px; border-top: 1px solid var(--border-soft); display: grid; gap: 8px; }
+    .output-actions { padding: 10px 12px; border-top: 1px solid var(--border-soft); display: grid; gap: 8px; }
     .validation { padding: 10px 14px; border-top: 1px solid var(--border-soft); min-height: 43px; color: var(--muted); font-size: 11px; }
     .validation.error { color: var(--danger); }
     .validation.warning { color: var(--warning); }
@@ -210,14 +229,16 @@
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
     @media (max-width: 1180px) {
-      .workspace { grid-template-columns: 240px minmax(500px, 1fr) 330px; }
+      .workspace { grid-template-columns: 240px minmax(500px, 1fr) 390px; }
+      .inspector-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .inspector-grid .field.wide-4, .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
     }
     @media (max-width: 960px) {
       body { overflow: auto; }
       .app { height: auto; min-height: 100%; }
       .workspace { grid-template-columns: 230px minmax(500px, 1fr); }
-      .output-panel { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border-soft); min-height: 480px; }
-      .code-wrap { min-height: 340px; }
+      .inspector-panel { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border-soft); min-height: 300px; }
+      .inspector-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
       .topbar { padding: 0 10px; }
@@ -230,6 +251,8 @@
       .field-grid { grid-template-columns: 1fr; }
       .field.span-2 { grid-column: auto; }
       .check-field { padding-top: 0; }
+      .inspector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .inspector-grid .field.wide-2, .inspector-grid .field.wide-3, .inspector-grid .field.wide-4, .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
     }
   </style>
 </head>
@@ -306,9 +329,10 @@
         <div class="canvas-card">
           <div class="canvas-toolbar">
             <button class="btn tiny" id="fitBtn">Fit timeline</button>
+            <button class="btn tiny" id="fillDelaysBtn" title="Add explicit delays to every empty interval">Fill delays</button>
             <button class="btn tiny" id="clearBtn">Clear</button>
             <span class="toolbar-divider"></span>
-            <span class="help">Move <span class="kbd">←</span> <span class="kbd">→</span> · duplicate <span class="kbd">⌘/Ctrl D</span> · copy/paste <span class="kbd">⌘/Ctrl C/V</span> · <span class="kbd">Alt-drag</span> copy</span>
+            <span class="help">Magnetic alignment · hold <span class="kbd">Shift</span> for grid only · <span class="kbd">Alt-drag</span> copy</span>
             <span class="zoom-label" id="timelineSummary"></span>
           </div>
           <div class="canvas-shell" id="canvasShell">
@@ -317,23 +341,30 @@
           </div>
         </div>
 
-        <div class="inspector-card" id="inspector">
-          <div class="inspector-empty">Select an element to edit duration, amplitude, phase, text, and shape.</div>
-        </div>
+        <section class="code-card" id="codeCard" aria-label="Generated Python output">
+          <div class="output-head">
+            <div class="output-title"><h2>Live Python</h2><p>Generated for the current pulseplot API</p></div>
+            <button class="btn tiny code-toggle" id="codeToggleBtn" aria-expanded="true">Collapse</button>
+          </div>
+          <div class="code-body">
+            <div class="code-wrap"><pre><code id="codeOutput"></code></pre></div>
+            <div class="validation" id="validationMessage">Sequence is valid.</div>
+            <div class="output-actions">
+              <div class="button-grid">
+                <button class="btn primary" id="copyCodeBtn">Copy code</button>
+                <button class="btn" id="downloadCodeBtn">Download .py</button>
+                <button class="btn" id="exportSvgBtn">Export SVG</button>
+                <button class="btn" id="exportPngBtn">Export PNG</button>
+              </div>
+              <p class="help" style="margin:0">PNG export uses the selected figure dimensions at 300 pixels per inch.</p>
+            </div>
+          </div>
+        </section>
       </section>
 
-      <aside class="output-panel" aria-label="Generated output">
-        <div class="output-head"><h2>Live Python</h2><p>Generated for the current pulseplot API</p></div>
-        <div class="code-wrap"><pre><code id="codeOutput"></code></pre></div>
-        <div class="validation" id="validationMessage">Sequence is valid.</div>
-        <div class="output-actions">
-          <div class="button-grid">
-            <button class="btn primary" id="copyCodeBtn">Copy code</button>
-            <button class="btn" id="downloadCodeBtn">Download .py</button>
-            <button class="btn" id="exportSvgBtn">Export SVG</button>
-            <button class="btn" id="exportPngBtn">Export PNG</button>
-          </div>
-          <p class="help" style="margin:0">PNG export uses the selected figure dimensions at 300 pixels per inch.</p>
+      <aside class="inspector-panel" aria-label="Element inspector">
+        <div id="inspector">
+          <div class="inspector-empty">Select an element to edit its timing, appearance, annotation, and shape.</div>
         </div>
       </aside>
     </main>
@@ -588,6 +619,58 @@
       return metrics.top + index * state.settings.channelSpacing + state.settings.channelSpacing / 2;
     }
     function snap(value) { return round(Math.round(value / state.settings.snap) * state.settings.snap); }
+    function alignmentAnchors(item, start = item.start) {
+      const duration = Math.max(0, Number(item.duration) || 0);
+      if (!duration || item.type === "marker") return [{ kind: "left", time: start, offset: 0 }];
+      return [
+        { kind: "left", time: start, offset: 0 },
+        { kind: "center", time: start + duration / 2, offset: duration / 2 },
+        { kind: "right", time: start + duration, offset: duration }
+      ];
+    }
+    function snapTargets(ignoreId) {
+      return state.elements
+        .filter(item => item.id !== ignoreId && item.type !== "marker" && item.duration > 0)
+        .flatMap(item => alignmentAnchors(item).map(anchor => ({ ...anchor, targetId: item.id })));
+    }
+    function anchorPriority(movingKind, targetKind) {
+      if (movingKind === targetKind) return 0;
+      if ((movingKind === "left" && targetKind === "right") || (movingKind === "right" && targetKind === "left")) return 1;
+      return 2;
+    }
+    function magneticStart(item, rawStart, metrics, disabled = false) {
+      const fallback = Math.max(0, snap(rawStart));
+      if (disabled) return { value: fallback, guide: null };
+      const threshold = 10;
+      const moving = alignmentAnchors(item, rawStart);
+      const candidates = [];
+      snapTargets(item.id).forEach(target => moving.forEach(anchor => {
+        const value = target.time - anchor.offset;
+        if (value < -1e-8) return;
+        candidates.push({
+          value: Math.max(0, round(value)),
+          distance: Math.abs(value - rawStart) * metrics.xScale,
+          priority: anchorPriority(anchor.kind, target.kind),
+          guide: { time: target.time, label: `${anchor.kind} ↔ ${target.kind}`, targetId: target.targetId }
+        });
+      }));
+      candidates.sort((a, b) => a.distance - b.distance || a.priority - b.priority);
+      return candidates[0]?.distance <= threshold ? candidates[0] : { value: fallback, guide: null };
+    }
+    function magneticDuration(item, rawDuration, metrics, disabled = false) {
+      const fallback = Math.max(state.settings.snap, snap(rawDuration));
+      if (disabled) return { value: fallback, guide: null };
+      const rawEnd = item.start + rawDuration;
+      const candidates = snapTargets(item.id)
+        .map(target => ({
+          value: round(target.time - item.start),
+          distance: Math.abs(target.time - rawEnd) * metrics.xScale,
+          guide: { time: target.time, label: `right ↔ ${target.kind}`, targetId: target.targetId }
+        }))
+        .filter(candidate => candidate.value >= state.settings.snap)
+        .sort((a, b) => a.distance - b.distance);
+      return candidates[0]?.distance <= 10 ? candidates[0] : { value: fallback, guide: null };
+    }
     function maxEnd() { return state.elements.reduce((max, item) => Math.max(max, item.start + Math.max(0, item.duration)), 0); }
     function selected() { return state.elements.find(item => item.id === state.selectedId) || null; }
 
@@ -719,13 +802,13 @@
         const w = Math.max(item.type === "marker" ? 1 : 3, item.duration * m.xScale);
         const h = clamp(item.amplitude, .05, 1.5) * 58;
         const isSelected = !clean && item.id === state.selectedId;
-        const group = svgEl("g", { "data-element-id": item.id, tabindex: clean ? -1 : 0, role: clean ? "img" : "button", "aria-label": `${item.type} at ${formatNum(item.start)}` });
+        const group = svgEl("g", { "data-element-id": item.id, "data-element-type": item.type, tabindex: clean ? -1 : 0, role: clean ? "img" : "button", "aria-label": `${item.type} at ${formatNum(item.start)}` });
         group.style.cursor = clean ? "default" : "move";
 
         if (item.type === "delay") {
           // Delays are gaps on the existing channel baseline. The transparent
           // hit area keeps an unlabelled delay selectable without drawing it.
-          group.append(svgEl("rect", { x, y: y - 13, width: w, height: 26, fill: "transparent" }));
+          group.append(svgEl("rect", { x, y: y - 13, width: w, height: 26, fill: "transparent", class: "delay-hit" }));
         } else if (item.type === "marker") {
           group.append(svgEl("line", { x1: x, y1: y - 48, x2: x, y2: y + 17, stroke: item.edgecolor, "stroke-width": 2 }));
           group.append(svgEl("rect", { x: x - 7, y: y - 49, width: 14, height: 67, fill: "transparent" }));
@@ -764,6 +847,23 @@
         }
         svg.append(group);
       });
+
+      if (!clean && interaction?.snapGuide) {
+        const guide = interaction.snapGuide;
+        const x = m.left + guide.time * m.xScale;
+        svg.append(svgEl("line", {
+          x1: x, y1: m.top - 18, x2: x, y2: m.height - m.bottom,
+          stroke: selectedColor, "stroke-width": 1.5, "stroke-dasharray": "5 4",
+          "pointer-events": "none", "data-snap-guide": guide.label
+        }));
+        const labelWidth = Math.max(70, guide.label.length * 6 + 12);
+        svg.append(svgEl("rect", { x: clamp(x - labelWidth / 2, m.left, m.width - m.right - labelWidth), y: m.top - 35, width: labelWidth, height: 18, rx: 5, fill: selectedColor, "pointer-events": "none" }));
+        svg.append(svgEl("text", {
+          x: clamp(x, m.left + labelWidth / 2, m.width - m.right - labelWidth / 2), y: m.top - 22,
+          fill: "#07111e", "text-anchor": "middle", "font-size": 10, "font-family": "system-ui, sans-serif", "font-weight": 700,
+          "pointer-events": "none"
+        }, `${guide.label} · t=${formatNum(guide.time)}`));
+      }
 
       if (!clean) {
         $("#emptyHint").classList.toggle("show", !state.elements.length);
@@ -810,9 +910,9 @@
         <div class="field"><label>${esc(parameter.label)}</label><input data-shape-param="${index}" type="number" value="${params[index]}" step="${parameter.step ?? .1}" ${parameter.min !== undefined ? `min="${parameter.min}"` : ""} ${parameter.max !== undefined ? `max="${parameter.max}"` : ""}></div>
       `).join("");
       return `
-        <div class="field span-2"><label>Shape family (sp)</label><select data-shape-name>${options}</select></div>
+        <div class="field wide-2"><label title="Shape family (sp)">Shape (sp)</label><select data-shape-name>${options}</select></div>
         ${parameterFields}
-        ${spec.params.length ? `<div class="field span-2"><label>Generated pulseplot shape</label><input data-shape-preview value="${esc(composeShape(name, params))}" readonly></div>` : ""}`;
+        ${spec.params.length ? `<div class="field wide-2"><label title="Generated pulseplot shape">Generated sp</label><input data-shape-preview value="${esc(composeShape(name, params))}" readonly></div>` : ""}`;
     }
 
     function renderInspector() {
@@ -828,25 +928,25 @@
           <span class="type-badge">${esc(item.type)}</span><h2>Element inspector</h2>
           <div class="inspector-actions"><button class="btn tiny" data-inspector-action="duplicate">Duplicate</button><button class="btn tiny danger" data-inspector-action="delete">Delete</button></div>
         </div>
-        <div class="field-grid">
-          <div class="field"><label>Channel</label><select data-prop="channel">${state.channels.map(channel => `<option value="${esc(channel.id)}" ${channel.id === item.channel ? "selected" : ""}>${esc(channel.name)}</option>`).join("")}</select></div>
-          <div class="field"><label>Start time (st)</label><input data-prop="start" type="number" min="0" step="${state.settings.snap}" value="${item.start}"></div>
-          ${item.type !== "marker" ? `<div class="field"><label>${item.type === "delay" ? "Delay length (d)" : "Duration (p)"}</label><input data-prop="duration" type="number" min="${state.settings.snap}" step="${state.settings.snap}" value="${item.duration}"></div>` : ""}
-          ${isPulse ? `<div class="field"><label>Power / amplitude (pl)</label><input data-prop="amplitude" type="number" min="0.05" max="1.5" step="0.05" value="${item.amplitude}"></div>` : ""}
-          <div class="field"><label>Phase (ph)</label><input data-prop="phase" value="${esc(item.phase)}" placeholder="1, rec, or _x"></div>
-          ${item.type !== "delay" ? `<div class="field"><label>Face color (fc)</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : ""}
-          ${item.type !== "delay" ? `<div class="field"><label>Edge color (ec)</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : ""}
-          <div class="field span-2"><label>Annotation (tx) · LaTeX accepted</label><input data-prop="text" value="${esc(item.text)}" placeholder="$\\tau$, $90^\\circ$, CP"></div>
-          <div class="field"><label>Text x offset (tdx)</label><input data-prop="tdx" type="number" step="0.1" value="${item.tdx}"></div>
-          <div class="field"><label>Text y offset (tdy)</label><input data-prop="tdy" type="number" step="0.1" value="${item.tdy}"></div>
-          <div class="field"><label>Text size (tfs)</label><input data-prop="tfs" type="number" min="6" max="40" value="${item.tfs}"></div>
-          <div class="field"><label>Phase x offset (pdx)</label><input data-prop="pdx" type="number" step="0.1" value="${item.pdx}"></div>
-          <div class="field"><label>Phase y offset (pdy)</label><input data-prop="pdy" type="number" step="0.1" value="${item.pdy}"></div>
-          <div class="field"><label>Phase size (pfs)</label><input data-prop="pfs" type="number" min="6" max="40" value="${item.pfs}"></div>
+        <div class="inspector-grid">
+          <div class="field wide-2"><label>Channel</label><select data-prop="channel">${state.channels.map(channel => `<option value="${esc(channel.id)}" ${channel.id === item.channel ? "selected" : ""}>${esc(channel.name)}</option>`).join("")}</select></div>
+          <div class="field"><label title="Start time (st)">Start · st</label><input data-prop="start" type="number" min="0" step="${state.settings.snap}" value="${item.start}"></div>
+          ${item.type !== "marker" ? `<div class="field"><label title="${item.type === "delay" ? "Delay length (d)" : "Duration (p)"}">${item.type === "delay" ? "Length · d" : "Duration · p"}</label><input data-prop="duration" type="number" min="${state.settings.snap}" step="${state.settings.snap}" value="${item.duration}"></div>` : `<div class="field"><label>Duration</label><input value="0" disabled></div>`}
+          ${isPulse ? `<div class="field"><label title="Power / amplitude (pl)">Power · pl</label><input data-prop="amplitude" type="number" min="0.05" max="1.5" step="0.05" value="${item.amplitude}"></div>` : `<div class="field"><label>Power · pl</label><input value="—" disabled></div>`}
+          <div class="field"><label title="Phase (ph)">Phase · ph</label><input data-prop="phase" value="${esc(item.phase)}" placeholder="1 / rec"></div>
+          ${item.type !== "delay" ? `<div class="field"><label title="Face color (fc)">Face · fc</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : `<div class="field"><label>Face · fc</label><input value="—" disabled></div>`}
+          ${item.type !== "delay" ? `<div class="field"><label title="Edge color (ec)">Edge · ec</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : `<div class="field"><label>Edge · ec</label><input value="—" disabled></div>`}
+          <div class="field wide-4"><label title="Annotation (tx); LaTeX accepted">Annotation · tx</label><input data-prop="text" value="${esc(item.text)}" placeholder="$\\tau$, $90^\\circ$, CP"></div>
+          <div class="field"><label title="Text x offset (tdx)">Text x</label><input data-prop="tdx" type="number" step="0.1" value="${item.tdx}"></div>
+          <div class="field"><label title="Text y offset (tdy)">Text y</label><input data-prop="tdy" type="number" step="0.1" value="${item.tdy}"></div>
+          <div class="field"><label title="Text size (tfs)">Text size</label><input data-prop="tfs" type="number" min="6" max="40" value="${item.tfs}"></div>
+          <div class="field"><label title="Phase x offset (pdx)">Phase x</label><input data-prop="pdx" type="number" step="0.1" value="${item.pdx}"></div>
+          <div class="field"><label title="Phase y offset (pdy)">Phase y</label><input data-prop="pdy" type="number" step="0.1" value="${item.pdy}"></div>
+          <div class="field"><label title="Phase size (pfs)">Phase size</label><input data-prop="pfs" type="number" min="6" max="40" value="${item.pfs}"></div>
           ${item.type === "shaped" ? shapeControlsHtml(item) : ""}
-          ${item.type === "shaped" ? `<label class="check-field field span-2"><input data-prop="truncateOff" type="checkbox" ${item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name) ? "checked" : ""} ${["fid", "fid2"].includes(parseShape(item.shape).name) ? "disabled" : ""}> Truncate baseline edges (troff)${["fid", "fid2"].includes(parseShape(item.shape).name) ? " · automatic for FID" : ""}</label>` : ""}
-          <label class="check-field field span-2"><input data-prop="allowOverlap" type="checkbox" ${item.allowOverlap ? "checked" : ""}> Allow this element to overlap others</label>
-          ${item.type === "shaped" && parseShape(item.shape).name === "custom" ? `<div class="field span-2 custom-shape"><label>Custom envelope · drag points</label><svg id="shapeEditor" viewBox="0 0 480 100" aria-label="Custom shape curve editor"></svg></div>` : ""}
+          ${item.type === "shaped" ? `<label class="check-field field wide-3"><input data-prop="truncateOff" type="checkbox" ${item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name) ? "checked" : ""} ${["fid", "fid2"].includes(parseShape(item.shape).name) ? "disabled" : ""}> Truncate edges (troff)${["fid", "fid2"].includes(parseShape(item.shape).name) ? " · automatic" : ""}</label>` : ""}
+          <label class="check-field field wide-3"><input data-prop="allowOverlap" type="checkbox" ${item.allowOverlap ? "checked" : ""}> Allow overlap</label>
+          ${item.type === "shaped" && parseShape(item.shape).name === "custom" ? `<div class="field wide-6 custom-shape"><label>Custom envelope · drag points</label><svg id="shapeEditor" viewBox="0 0 480 100" aria-label="Custom shape curve editor"></svg></div>` : ""}
         </div>`;
       if (item.type === "shaped" && parseShape(item.shape).name === "custom") renderShapeEditor(item);
     }
@@ -893,17 +993,19 @@
       return start;
     }
 
-    function addElement(kind, channelId = state.activeChannelId, start = null) {
+    function addElement(kind, channelId = state.activeChannelId, start = null, { magnetic = false } = {}) {
       checkpoint();
       const type = kind === "shaped" ? "shaped" : kind;
       const duration = type === "marker" ? 0 : type === "delay" ? 2 : 1.5;
       const channelElements = state.elements.filter(item => item.channel === channelId);
       const defaultStart = channelElements.reduce((max, item) => Math.max(max, item.start + item.duration), 0);
-      const item = el(type, channelId, start === null ? defaultStart : Math.max(0, snap(start)), duration, {
+      const rawStart = start === null ? defaultStart : Math.max(0, start);
+      const item = el(type, channelId, snap(rawStart), duration, {
         shape: type === "shaped" ? "gauss" : "",
         facecolor: state.channels.find(channel => channel.id === channelId)?.color || COLORS[0],
         edgecolor: "#000000"
       });
+      if (magnetic) item.start = magneticStart(item, rawStart, canvasMetrics()).value;
       if (overlaps(item)) item.start = nextOpenStart(item);
       state.elements.push(item);
       state.selectedId = item.id;
@@ -993,6 +1095,37 @@
         cursor = cursor === null ? end : Math.max(cursor, end);
       });
       return result;
+    }
+
+    function findChannelGaps(channelId) {
+      const intervals = state.elements
+        .filter(item => item.channel === channelId && item.type !== "marker" && item.duration > 0)
+        .map(item => ({ start: Math.max(0, item.start), end: Math.max(0, item.start + item.duration) }))
+        .sort((a, b) => a.start - b.start || a.end - b.end);
+      if (!intervals.length) return [];
+      const gaps = [];
+      let cursor = 0;
+      intervals.forEach(interval => {
+        if (interval.start > cursor + 1e-8) gaps.push({ start: round(cursor), duration: round(interval.start - cursor) });
+        cursor = Math.max(cursor, interval.end);
+      });
+      return gaps.filter(gap => gap.duration > 1e-8);
+    }
+
+    function fillDelays() {
+      const delays = state.channels.flatMap(channel => findChannelGaps(channel.id).map(gap =>
+        el("delay", channel.id, gap.start, gap.duration, { text: "", allowOverlap: true })
+      ));
+      if (!delays.length) {
+        toast("No empty intervals to fill");
+        return;
+      }
+      checkpoint();
+      state.elements.push(...delays);
+      state.selectedId = delays[0].id;
+      state.activeChannelId = delays[0].channel;
+      changed();
+      toast(`${delays.length} delay${delays.length === 1 ? "" : "s"} added`);
     }
 
     function generatePython() {
@@ -1102,7 +1235,7 @@
       state.activeChannelId = item.channel;
       const handle = event.target.dataset.handle;
       const point = pointerToSvg(event);
-      interaction = { id: item.id, mode: handle || "move", origin: point, initial: deepCopy(item), checkpoint: checkpointState, invalid: false };
+      interaction = { id: item.id, mode: handle || "move", origin: point, initial: deepCopy(item), checkpoint: checkpointState, invalid: false, snapGuide: null };
       $("#sequenceCanvas").setPointerCapture(event.pointerId);
       renderAll();
     }
@@ -1113,12 +1246,19 @@
       if (!item) return;
       const point = pointerToSvg(event), m = canvasMetrics();
       const dx = (point.x - interaction.origin.x) / m.xScale;
-      if (interaction.mode === "duration") item.duration = Math.max(state.settings.snap, snap(interaction.initial.duration + dx));
+      if (interaction.mode === "duration") {
+        const result = magneticDuration(item, interaction.initial.duration + dx, m, event.shiftKey);
+        item.duration = result.value;
+        interaction.snapGuide = result.guide;
+      }
       else if (interaction.mode === "amplitude") {
         const dy = interaction.origin.y - point.y;
         item.amplitude = round(clamp(interaction.initial.amplitude + dy / 58, .05, 1.5), 2);
+        interaction.snapGuide = null;
       } else {
-        item.start = Math.max(0, snap(interaction.initial.start + dx));
+        const result = magneticStart(item, interaction.initial.start + dx, m, event.shiftKey);
+        item.start = result.value;
+        interaction.snapGuide = result.guide;
         const channel = channelAtY(point.y, m);
         item.channel = channel.id;
         state.activeChannelId = channel.id;
@@ -1149,8 +1289,8 @@
       const point = pointerToSvg(event);
       const m = canvasMetrics();
       const channel = channelAtY(point.y, m);
-      const time = snap((point.x - m.left) / m.xScale);
-      addElement(kind, channel.id, time);
+      const time = (point.x - m.left) / m.xScale;
+      addElement(kind, channel.id, time, { magnetic: true });
     }
 
     function renderShapeDrag(event) {
@@ -1388,6 +1528,7 @@
       $("#fitBtn").addEventListener("click", () => {
         checkpoint(); state.settings.timeRange = Math.max(5, Math.ceil(maxEnd() + 2)); changed();
       });
+      $("#fillDelaysBtn").addEventListener("click", fillDelays);
       $("#clearBtn").addEventListener("click", () => {
         if (state.elements.length && !confirm("Clear every element from the canvas?")) return;
         checkpoint(); state.elements = []; state.selectedId = null; changed();
@@ -1395,6 +1536,12 @@
       $("#undoBtn").addEventListener("click", undo);
       $("#redoBtn").addEventListener("click", redo);
       $("#themeBtn").addEventListener("click", () => { state.settings.theme = state.settings.theme === "dark" ? "light" : "dark"; changed(); });
+      $("#codeToggleBtn").addEventListener("click", () => {
+        const card = $("#codeCard");
+        const collapsed = card.classList.toggle("collapsed");
+        $("#codeToggleBtn").textContent = collapsed ? "Expand" : "Collapse";
+        $("#codeToggleBtn").setAttribute("aria-expanded", String(!collapsed));
+      });
 
       $("#copyCodeBtn").addEventListener("click", async () => {
         try { await navigator.clipboard.writeText(generatePython()); toast("Python copied to clipboard"); }
