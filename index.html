@@ -150,7 +150,7 @@
     input[type="range"] { padding: 0; accent-color: var(--accent); }
     .check-field { display: flex; align-items: center; gap: 8px; padding-top: 19px; }
 
-    .canvas-card, .code-card {
+    .canvas-card, .plot-settings-card, .code-card {
       background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius); box-shadow: var(--shadow);
     }
     .canvas-toolbar {
@@ -174,6 +174,22 @@
     .empty-hint.show { display: grid; }
     .empty-hint div { border: 1px dashed var(--border); border-radius: 12px; padding: 18px 24px; }
 
+    .plot-settings-card {
+      margin-top: 14px; padding: 9px 11px; display: flex; align-items: center; gap: 12px; overflow: hidden;
+    }
+    .plot-settings-card .section-title { flex: 0 0 auto; }
+    .plot-settings-inline {
+      min-width: 0; display: flex; align-items: flex-end; gap: 8px; overflow-x: auto; padding: 2px 1px 4px;
+      scrollbar-width: thin;
+    }
+    .plot-settings-inline .field { flex: 0 0 82px; gap: 3px; }
+    .plot-settings-inline .title-setting { flex-basis: 170px; }
+    .plot-settings-inline .field label { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .plot-settings-inline input { height: 32px; padding: 5px 7px; border-radius: 6px; font-size: 12px; }
+    .plot-settings-inline .check-field {
+      flex: 0 0 auto; min-height: 32px; padding: 0 6px; gap: 6px; color: var(--muted); font-size: 11px; white-space: nowrap;
+    }
+
     #inspector { min-height: 100%; padding: 12px; }
     .inspector-empty { color: var(--muted); text-align: center; padding: 48px 18px; line-height: 1.5; }
     .inspector-head {
@@ -184,17 +200,35 @@
     .inspector-head h2 { font-size: 13px; margin: 0; }
     .type-badge { padding: 4px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
     .inspector-actions { margin-left: auto; display: flex; gap: 7px; }
-    .inspector-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px 6px; align-items: end; }
-    .inspector-grid .field { gap: 3px; }
-    .inspector-grid .field.wide-2 { grid-column: span 2; }
-    .inspector-grid .field.wide-3 { grid-column: span 3; }
-    .inspector-grid .field.wide-4 { grid-column: span 4; }
+    .inspector-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+    .inspector-grid .field {
+      display: flex; flex-direction: column; gap: 8px; min-height: 106px; padding: 10px;
+      border: 1px solid var(--border-soft); border-radius: 11px; background: var(--panel-2); cursor: text;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .inspector-grid .field:hover { border-color: var(--border); background: var(--panel-3); transform: translateY(-1px); }
+    .inspector-grid .field:focus-within { border-color: var(--accent-2); background: var(--panel-3); }
+    .inspector-grid .field.wide-2, .inspector-grid .field.wide-3, .inspector-grid .field.wide-4 { grid-column: auto; }
     .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
-    .inspector-grid .field label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .inspector-grid input, .inspector-grid select { height: 30px; padding: 4px 6px; border-radius: 6px; font-size: 12px; }
-    .inspector-grid input[type="color"] { min-height: 30px; padding: 2px; }
-    .inspector-grid .check-field { align-self: center; min-height: 30px; padding-top: 0; font-size: 11px; color: var(--muted); }
-    .custom-shape { border: 1px solid var(--border-soft); background: var(--panel-2); border-radius: 10px; padding: 9px; }
+    .inspector-grid .field > label:first-child {
+      overflow: hidden; color: var(--muted); font-size: 15px; font-weight: 650; line-height: 1.2;
+      text-overflow: ellipsis;
+    }
+    .inspector-grid input, .inspector-grid select {
+      height: 45px; margin-top: auto; padding: 8px 9px; border-radius: 7px; background: var(--panel);
+      font-size: 16px;
+    }
+    .inspector-grid input[type="color"] { min-height: 45px; padding: 3px; cursor: pointer; }
+    .inspector-grid input:disabled { opacity: .55; cursor: not-allowed; }
+    .inspector-grid .check-field {
+      align-self: stretch; align-items: center; justify-content: flex-start; min-height: 106px;
+      padding: 10px; font-size: 15px; font-weight: 650; line-height: 1.3; color: var(--muted); cursor: pointer;
+    }
+    .inspector-grid .check-field input { flex: 0 0 auto; width: 22px; height: 22px; margin: 0; }
+    .custom-shape {
+      aspect-ratio: auto !important; min-height: 136px !important; border: 1px solid var(--border-soft);
+      background: var(--panel-2); border-radius: 10px; padding: 9px;
+    }
     #shapeEditor { display: block; width: 100%; height: 100px; touch-action: none; }
 
     .code-card { margin-top: 14px; overflow: hidden; }
@@ -202,8 +236,11 @@
     .output-title { min-width: 0; }
     .output-head h2 { font-size: 13px; margin: 0 0 3px; }
     .output-head p { font-size: 11px; color: var(--muted); margin: 0; }
-    .code-toggle { margin-left: auto; }
-    .code-card.collapsed .code-body { display: none; }
+    .code-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(190px, 1fr); }
+    .code-pane { min-width: 0; }
+    .code-card.collapsed .code-pane { display: none; }
+    .code-card.collapsed .code-body { grid-template-columns: 1fr; }
+    .code-card.collapsed .output-actions { border-left: 0; }
     .code-wrap { height: clamp(190px, 28vh, 330px); overflow: auto; background: #090e17; }
     html[data-theme="light"] .code-wrap { background: #f7f9fc; }
     pre { margin: 0; min-height: 100%; padding: 16px; font: 12px/1.65 var(--mono); tab-size: 4; white-space: pre; }
@@ -216,7 +253,19 @@
     html[data-theme="light"] .tok-fn { color: #1d5fbf; }
     html[data-theme="light"] .tok-str { color: #368a34; }
     html[data-theme="light"] .tok-num { color: #986801; }
-    .output-actions { padding: 10px 12px; border-top: 1px solid var(--border-soft); display: grid; gap: 8px; }
+    .output-actions {
+      min-width: 0; padding: 12px; border-left: 1px solid var(--border-soft); background: var(--panel-2);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .output-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .action-tile {
+      min-height: 72px; padding: 9px 7px; border-radius: 11px; flex-direction: column; white-space: normal;
+      font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center;
+    }
+    .action-tile::before { content: attr(data-icon); color: var(--accent); font: 700 17px/1 var(--mono); }
+    .action-tile.primary::before { color: #06130f; }
+    html[data-theme="light"] #copyCodeBtn, html[data-theme="light"] #copyCodeBtn::before { color: #fff; }
+    .output-actions .help { margin: auto 0 0; }
     .validation { padding: 10px 14px; border-top: 1px solid var(--border-soft); min-height: 43px; color: var(--muted); font-size: 11px; }
     .validation.error { color: var(--danger); }
     .validation.warning { color: var(--warning); }
@@ -232,15 +281,14 @@
 
     @media (max-width: 1180px) {
       .workspace { grid-template-columns: 240px minmax(500px, 1fr) 390px; }
-      .inspector-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .inspector-grid .field.wide-4, .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
+      .inspector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 960px) {
       body { overflow: auto; }
       .app { height: auto; min-height: 100%; }
       .workspace { grid-template-columns: 230px minmax(500px, 1fr); }
       .inspector-panel { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border-soft); min-height: 300px; }
-      .inspector-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .inspector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
       .topbar { padding: 0 10px; }
@@ -254,7 +302,10 @@
       .field.span-2 { grid-column: auto; }
       .check-field { padding-top: 0; }
       .inspector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .inspector-grid .field.wide-2, .inspector-grid .field.wide-3, .inspector-grid .field.wide-4, .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
+      .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
+      .code-body { grid-template-columns: 1fr; }
+      .output-actions { border-left: 0; border-top: 1px solid var(--border-soft); }
+      .output-action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
   </style>
 </head>
@@ -316,20 +367,6 @@
           <button class="btn" id="loadTemplateBtn" style="width:100%; margin-top:8px">Load template</button>
         </section>
 
-        <section class="section">
-          <div class="section-head"><h2 class="section-title">Plot settings</h2></div>
-          <div class="field-grid" id="settingsForm">
-            <div class="field span-2"><label for="plotTitle">Title</label><input id="plotTitle" data-setting="title" value="Pulse sequence"></div>
-            <div class="field"><label for="figureWidth">Figure width (in)</label><input id="figureWidth" data-setting="figureWidth" type="number" min="3" max="20" step="0.5"></div>
-            <div class="field"><label for="figureHeight">Figure height (in)</label><input id="figureHeight" data-setting="figureHeight" type="number" min="1" max="20" step="0.5"></div>
-            <div class="field"><label for="timeRange">Timeline maximum</label><input id="timeRange" data-setting="timeRange" type="number" min="1" step="1"></div>
-            <div class="field"><label for="snapSize">Snap increment</label><input id="snapSize" data-setting="snap" type="number" min="0.01" step="0.05"></div>
-            <div class="field"><label for="channelSpacing">Channel spacing</label><input id="channelSpacing" data-setting="channelSpacing" type="number" min="90" max="220" step="5"></div>
-            <div class="field"><label for="fontSize">Font size</label><input id="fontSize" data-setting="fontSize" type="number" min="8" max="28" step="1"></div>
-            <label class="check-field"><input id="gridToggle" data-setting="grid" type="checkbox"> Grid</label>
-            <label class="check-field"><input id="labelsToggle" data-setting="labels" type="checkbox"> Labels</label>
-          </div>
-        </section>
       </aside>
 
       <section class="center" aria-label="Sequence workspace">
@@ -348,22 +385,39 @@
           </div>
         </div>
 
+        <section class="plot-settings-card" aria-label="Plot settings">
+          <h2 class="section-title">Plot settings</h2>
+          <div class="plot-settings-inline" id="settingsForm">
+            <div class="field title-setting"><label for="plotTitle">Title</label><input id="plotTitle" data-setting="title" value="Pulse sequence"></div>
+            <div class="field"><label for="figureWidth" title="Figure width (inches)">Width (in)</label><input id="figureWidth" data-setting="figureWidth" type="number" min="3" max="20" step="0.5"></div>
+            <div class="field"><label for="figureHeight" title="Figure height (inches)">Height (in)</label><input id="figureHeight" data-setting="figureHeight" type="number" min="1" max="20" step="0.5"></div>
+            <div class="field"><label for="timeRange" title="Timeline maximum">Timeline max</label><input id="timeRange" data-setting="timeRange" type="number" min="1" step="1"></div>
+            <div class="field"><label for="snapSize" title="Snap increment">Snap</label><input id="snapSize" data-setting="snap" type="number" min="0.01" step="0.05"></div>
+            <div class="field"><label for="channelSpacing" title="Channel spacing">Channel gap</label><input id="channelSpacing" data-setting="channelSpacing" type="number" min="90" max="220" step="5"></div>
+            <div class="field"><label for="fontSize">Font</label><input id="fontSize" data-setting="fontSize" type="number" min="8" max="28" step="1"></div>
+            <label class="check-field"><input id="gridToggle" data-setting="grid" type="checkbox"> Grid</label>
+            <label class="check-field"><input id="labelsToggle" data-setting="labels" type="checkbox"> Labels</label>
+          </div>
+        </section>
+
         <section class="code-card" id="codeCard" aria-label="Generated Python output">
           <div class="output-head">
             <div class="output-title"><h2>Live Python</h2><p>Generated for the current pulseplot API</p></div>
-            <button class="btn tiny code-toggle" id="codeToggleBtn" aria-expanded="true">Collapse</button>
           </div>
           <div class="code-body">
-            <div class="code-wrap"><pre><code id="codeOutput"></code></pre></div>
-            <div class="validation" id="validationMessage">Sequence is valid.</div>
+            <div class="code-pane">
+              <div class="code-wrap"><pre><code id="codeOutput"></code></pre></div>
+              <div class="validation" id="validationMessage">Sequence is valid.</div>
+            </div>
             <div class="output-actions">
-              <div class="button-grid">
-                <button class="btn primary" id="copyCodeBtn">Copy code</button>
-                <button class="btn" id="downloadCodeBtn">Download .py</button>
-                <button class="btn" id="exportSvgBtn">Export SVG</button>
-                <button class="btn" id="exportPngBtn">Export PNG</button>
+              <div class="output-action-grid">
+                <button class="btn primary action-tile" id="copyCodeBtn" data-icon="⧉">Copy code</button>
+                <button class="btn action-tile" id="downloadCodeBtn" data-icon="PY">Download .py</button>
+                <button class="btn action-tile" id="exportSvgBtn" data-icon="SVG">Export SVG</button>
+                <button class="btn action-tile" id="exportPngBtn" data-icon="PNG">Export PNG</button>
+                <button class="btn action-tile" id="codeToggleBtn" data-icon="↕" aria-expanded="true">Collapse</button>
               </div>
-              <p class="help" style="margin:0">PNG export uses the selected figure dimensions at 300 pixels per inch.</p>
+              <p class="help">PNG export uses the selected figure dimensions at 300 pixels per inch.</p>
             </div>
           </div>
         </section>
@@ -691,9 +745,17 @@
 
     function shapeValues(item, samples = 36) {
       const { name, params } = parseShape(item.shape);
+      if (name === "q3" || name === "q5") return gaussianCascadeValues(name);
+      if (name === "reburp") return reburpValues();
+      // FIDs need substantially more samples than pulse envelopes. Keep at
+      // least 24 points per oscillation so higher frequencies remain smooth
+      // while capping the path size to preserve interactive performance.
+      const renderSamples = name === "fid" || name === "fid2"
+        ? clamp(Math.ceil(Math.abs(params[0]) * 24), 96, 4096)
+        : samples;
       const values = [];
-      for (let i = 0; i <= samples; i++) {
-        const x = i / samples;
+      for (let i = 0; i <= renderSamples; i++) {
+        const x = i / renderSamples;
         let y;
         if (name === "ramp") {
           const percent = params[0] / 100, depth = Math.abs(percent);
@@ -710,21 +772,44 @@
           const depth = Math.abs(percent) / 100;
           y = percent >= 0 ? 1 - depth + depth * unit : 1 - depth * unit;
         }
-        else if (name === "q3" || name === "q5") y = Math.pow(Math.sin(Math.PI * x), name === "q3" ? 1.5 : 2.3);
-        else if (name === "reburp") {
-          const coefficients = [.49, -1.02, 1.11, -1.57, .83, -.42, .26, -.16, .10, -.07, .04, -.03, .01, -.02, 0, -.01];
-          y = coefficients.reduce((sum, coefficient, n) => sum + coefficient * Math.cos(n * x * 16), 0);
-        }
         else if (name === "custom") y = interpolate(item.customPoints, x);
         else y = Math.exp(-Math.pow(x - params[0], 2) / (2 * Math.pow(Math.max(.001, params[1]), 2)));
         values.push([x, y]);
       }
-      if (["gauss", "fid", "fid2", "grad", "reburp"].includes(name)) {
+      if (["gauss", "fid", "fid2", "grad"].includes(name)) {
         const low = Math.min(...values.map(point => point[1]));
         const high = Math.max(...values.map(point => point[1]));
         values.forEach(point => { point[1] = (point[1] - low) / Math.max(1e-9, high - low); });
       }
-      return values.map(([x, y]) => [x, clamp(y, 0, 1.35)]);
+      return values.map(([x, y]) => [x, clamp(y, -1.35, 1.35)]);
+    }
+
+    function gaussianCascadeValues(name) {
+      const components = name === "q3"
+        ? [[-4.39, .306, .18 / 2], [4.57, .545, .183 / 2], [2.60, .804, .245 / 2]]
+        : [[-1.48, .162, .186 / 2], [-4.34, .307, .139 / 2], [7.33, .497, .143 / 2], [-2.30, .643, .290 / 2], [13.7, .803, .137 / 2]];
+      const count = 100;
+      const xValues = Array.from({ length: count }, (_, index) => index / (count - 1));
+      const gaussians = components.map(([, center, sigma]) => {
+        const raw = xValues.map(x => Math.exp(-Math.pow(x - center, 2) / (2 * sigma ** 2)));
+        const low = Math.min(...raw), high = Math.max(...raw);
+        return raw.map(value => (value - low) / Math.max(1e-12, high - low));
+      });
+      const amplitudes = xValues.map((_, index) => Math.abs(
+        components.reduce((sum, [weight], componentIndex) => sum + weight * gaussians[componentIndex][index], 0)
+      ));
+      const high = Math.max(...amplitudes);
+      return xValues.map((x, index) => [x, amplitudes[index] / Math.max(1e-12, high)]);
+    }
+
+    function reburpValues() {
+      const coefficients = [.49, -1.02, 1.11, -1.57, .83, -.42, .26, -.16, .10, -.07, .04, -.03, .01, -.02, 0, -.01];
+      const fullShape = Array.from({ length: 256 }, (_, index) => {
+        const t = 16 * index / 255;
+        return coefficients.reduce((sum, coefficient, n) => sum + coefficient * Math.cos(n * t), 0);
+      });
+      const high = Math.max(...fullShape);
+      return fullShape.slice(0, 100).map((value, index) => [index / 99, clamp(value / Math.max(1e-12, high), -1.35, 1.35)]);
     }
     function sinc(x) { return Math.abs(x) < 1e-9 ? 1 : Math.sin(Math.PI * x) / (Math.PI * x); }
     function interpolate(points, x) {
@@ -973,8 +1058,8 @@
           ${item.type !== "marker" ? `<div class="field"><label title="${item.type === "delay" ? "Delay length (d)" : "Duration (p)"}">${item.type === "delay" ? "Length · d" : "Duration · p"}</label><input data-prop="duration" type="number" min="${state.settings.snap}" step="${state.settings.snap}" value="${item.duration}"></div>` : `<div class="field"><label>Duration</label><input value="0" disabled></div>`}
           ${isPulse ? `<div class="field"><label title="Power / amplitude (pl)">Power · pl</label><input data-prop="amplitude" type="number" min="-1.5" max="1.5" step="0.05" value="${item.amplitude}"></div>` : `<div class="field"><label>Power · pl</label><input value="—" disabled></div>`}
           <div class="field"><label title="Phase (ph)">Phase · ph</label><input data-prop="phase" value="${esc(item.phase)}" placeholder="1 / rec"></div>
-          ${item.type !== "delay" ? `<div class="field"><label title="Face color (fc)">Face · fc</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : `<div class="field"><label>Face · fc</label><input value="—" disabled></div>`}
-          ${item.type !== "delay" ? `<div class="field"><label title="Edge color (ec)">Edge · ec</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : `<div class="field"><label>Edge · ec</label><input value="—" disabled></div>`}
+          ${item.type !== "delay" ? `<div class="field"><label title="Face color (fc)">Facecolor · fc</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : `<div class="field"><label>Facecolor · fc</label><input value="—" disabled></div>`}
+          ${item.type !== "delay" ? `<div class="field"><label title="Edge color (ec)">Edgecolor · ec</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : `<div class="field"><label>Edgecolor · ec</label><input value="—" disabled></div>`}
           ${isPulse ? `<div class="field"><label title="Annotation and phase text color">Text color</label><input data-prop="textcolor" type="color" value="${esc(item.textcolor)}"></div>` : `<div class="field"><label>Text color</label><input value="—" disabled></div>`}
           <div class="field wide-4"><label title="Annotation (tx); LaTeX accepted">Annotation · tx</label><input data-prop="text" value="${esc(item.text)}" placeholder="$\\tau$, $90^\\circ$, CP"></div>
           <div class="field"><label title="Text x offset (tdx)">Text x</label><input data-prop="tdx" type="number" step="0.1" value="${item.tdx}"></div>
@@ -1567,8 +1652,11 @@
       });
       $("#inspector").addEventListener("click", event => {
         const action = event.target.dataset.inspectorAction;
-        if (action === "delete") deleteSelected();
-        if (action === "duplicate") duplicateSelected();
+        if (action === "delete") { deleteSelected(); return; }
+        if (action === "duplicate") { duplicateSelected(); return; }
+        const tile = event.target.closest(".inspector-grid .field");
+        if (!tile || event.target.matches("input, select, textarea, button")) return;
+        tile.querySelector("input:not(:disabled), select:not(:disabled), textarea:not(:disabled)")?.focus();
       });
       $("#inspector").addEventListener("pointerdown", event => {
         const point = event.target.closest("[data-point-index]");
