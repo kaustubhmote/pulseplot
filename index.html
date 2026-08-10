@@ -382,6 +382,20 @@
     const DEFAULT_EDGE_COLOR = "#000000";
     const DEFAULT_TEXT_COLOR = "#000000";
     const CHANNEL_Y_SPACING = 1.5;
+    const LATEX_SYMBOLS = Object.freeze({
+      alpha: "α", beta: "β", gamma: "γ", delta: "δ", epsilon: "ε", varepsilon: "ϵ", zeta: "ζ", eta: "η",
+      theta: "θ", vartheta: "ϑ", iota: "ι", kappa: "κ", lambda: "λ", mu: "μ", nu: "ν", xi: "ξ", omicron: "ο",
+      pi: "π", varpi: "ϖ", rho: "ρ", varrho: "ϱ", sigma: "σ", varsigma: "ς", tau: "τ", upsilon: "υ",
+      phi: "φ", varphi: "ϕ", chi: "χ", psi: "ψ", omega: "ω",
+      Gamma: "Γ", Delta: "Δ", Theta: "Θ", Lambda: "Λ", Xi: "Ξ", Pi: "Π", Sigma: "Σ", Upsilon: "Υ",
+      Phi: "Φ", Psi: "Ψ", Omega: "Ω",
+      pm: "±", mp: "∓", times: "×", cdot: "·", div: "÷", ast: "∗", leq: "≤", geq: "≥", neq: "≠",
+      approx: "≈", equiv: "≡", infty: "∞", partial: "∂", nabla: "∇", sum: "∑", prod: "∏", int: "∫",
+      rightarrow: "→", leftarrow: "←", leftrightarrow: "↔", Rightarrow: "⇒", Leftarrow: "⇐", Leftrightarrow: "⇔",
+      circ: "°", degree: "°", angstrom: "Å"
+    });
+    const SUPERSCRIPT_CHARS = Object.freeze({ 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹", "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾", i: "ⁱ", n: "ⁿ" });
+    const SUBSCRIPT_CHARS = Object.freeze({ 0: "₀", 1: "₁", 2: "₂", 3: "₃", 4: "₄", 5: "₅", 6: "₆", 7: "₇", 8: "₈", 9: "₉", "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎", a: "ₐ", e: "ₑ", h: "ₕ", i: "ᵢ", j: "ⱼ", k: "ₖ", l: "ₗ", m: "ₘ", n: "ₙ", o: "ₒ", p: "ₚ", r: "ᵣ", s: "ₛ", t: "ₜ", u: "ᵤ", v: "ᵥ", x: "ₓ" });
     const SHAPE_SPECS = {
       gauss: { label: "Gaussian", params: [{ label: "Center", default: .5, step: .05 }, { label: "Sigma", default: .1667, min: .001, step: .01 }] },
       ramp: { label: "Linear ramp", params: [{ label: "Percent", default: 40, min: -100, max: 100, step: 5 }] },
@@ -713,10 +727,25 @@
       return sorted[sorted.length - 1][1];
     }
 
+    function scriptCharacters(value, characters) {
+      return [...value].map(character => characters[character] || character).join("");
+    }
+
     function displayMath(text) {
       return String(text || "")
-        .replaceAll("$", "").replace(/\\phi/g, "φ").replace(/\\tau/g, "τ").replace(/\\Delta/g, "Δ")
-        .replace(/\^\\circ/g, "°").replace(/_\{([^}]+)\}/g, "$1").replace(/_([A-Za-z0-9]+)/g, "$1");
+        .replaceAll("$", "")
+        .replace(/\^\{?\\(?:circ|degree)\}?/g, "°")
+        .replace(/\\(?:text|mathrm|mathbf|mathit|operatorname)\{([^{}]*)\}/g, "$1")
+        .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "$1⁄$2")
+        .replace(/\\sqrt\{([^{}]+)\}/g, "√($1)")
+        .replace(/\\([A-Za-z]+)|\\([%${}_&#])/g, (match, command, escaped) => escaped || LATEX_SYMBOLS[command] || match)
+        .replace(/\\(?:,|;|:|!)/g, " ")
+        .replace(/\\(?:quad|qquad)\b/g, " ")
+        .replace(/\^\{([^{}]+)\}/g, (_, value) => scriptCharacters(value, SUPERSCRIPT_CHARS))
+        .replace(/_\{([^{}]+)\}/g, (_, value) => scriptCharacters(value, SUBSCRIPT_CHARS))
+        .replace(/\^([A-Za-z0-9+\-=()])/g, (_, value) => scriptCharacters(value, SUPERSCRIPT_CHARS))
+        .replace(/_([A-Za-z0-9+\-=()])/g, (_, value) => scriptCharacters(value, SUBSCRIPT_CHARS))
+        .replace(/[{}]/g, "");
     }
 
     function renderCanvas({ clean = false, exportWidth = null } = {}) {
@@ -771,7 +800,7 @@
         const y = channelY(item.channel, m);
         const x = m.left + item.start * m.xScale;
         const w = Math.max(item.type === "marker" ? 1 : 3, item.duration * m.xScale);
-        const h = clamp(item.amplitude, .05, 1.5) * 58;
+        const h = clamp(item.amplitude, -1.5, 1.5) * 58;
         const isSelected = !clean && item.id === state.selectedId;
         const group = svgEl("g", { "data-element-id": item.id, "data-element-type": item.type, tabindex: clean ? -1 : 0, role: clean ? "img" : "button", "aria-label": `${item.type} at ${formatNum(item.start)}` });
         group.style.cursor = clean ? "default" : "move";
@@ -797,7 +826,7 @@
           }
           group.append(svgEl("path", { d: path.join(" "), fill: truncated ? "none" : item.facecolor, "fill-opacity": .72, stroke: item.edgecolor, "stroke-width": 1.6 }));
         } else {
-          group.append(svgEl("rect", { x, y: y - h, width: w, height: h, rx: 2, fill: item.facecolor, "fill-opacity": .78, stroke: item.edgecolor, "stroke-width": 1.6 }));
+          group.append(svgEl("rect", { x, y: Math.min(y, y - h), width: w, height: Math.abs(h), rx: 2, fill: item.facecolor, "fill-opacity": .78, stroke: item.edgecolor, "stroke-width": 1.6 }));
         }
 
         const fontSize = item.tfs || state.settings.fontSize;
@@ -805,13 +834,15 @@
         if (item.text) group.append(svgEl("text", { x: x + w / 2 + item.tdx * m.xScale, y: y - h / 2 - item.tdy * 18, fill: elementTextColor, "font-size": fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, displayMath(item.text)));
         if (item.phase) {
           const phaseText = item.phase.startsWith("_") ? item.phase.slice(1) : `φ${item.phase}`;
-          group.append(svgEl("text", { x: x + w / 2 + item.pdx * m.xScale, y: y - h - 9 - item.pdy * 18, fill: elementTextColor, "font-size": item.pfs || state.settings.fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, phaseText));
+          group.append(svgEl("text", { x: x + w / 2 + item.pdx * m.xScale, y: y - h - 9 - item.pdy * 18, fill: elementTextColor, "font-size": item.pfs || state.settings.fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, displayMath(phaseText)));
         }
 
         if (isSelected) {
           const outlineX = item.type === "marker" ? x - 8 : x - 4;
           const outlineW = item.type === "marker" ? 16 : w + 8;
-          group.append(svgEl("rect", { x: outlineX, y: y - Math.max(h, 49) - 5, width: outlineW, height: Math.max(h, 49) + 27, rx: 5, fill: "none", stroke: selectedColor, "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" }));
+          const outlineTop = item.type === "marker" ? y - 54 : Math.min(y, y - h) - 14;
+          const outlineBottom = item.type === "marker" ? y + 23 : Math.max(y, y - h) + 14;
+          group.append(svgEl("rect", { x: outlineX, y: outlineTop, width: outlineW, height: outlineBottom - outlineTop, rx: 5, fill: "none", stroke: selectedColor, "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" }));
           if (item.type !== "marker") {
             group.append(svgEl("rect", { x: x + w - 5, y: y - 12, width: 10, height: 24, rx: 3, fill: selectedColor, "data-handle": "duration", style: "cursor:ew-resize" }));
           }
@@ -903,7 +934,7 @@
           <div class="field wide-2"><label>Channel</label><select data-prop="channel">${state.channels.map(channel => `<option value="${esc(channel.id)}" ${channel.id === item.channel ? "selected" : ""}>${esc(channel.name)}</option>`).join("")}</select></div>
           <div class="field"><label title="Start time (st)">Start · st</label><input data-prop="start" type="number" min="0" step="${state.settings.snap}" value="${item.start}"></div>
           ${item.type !== "marker" ? `<div class="field"><label title="${item.type === "delay" ? "Delay length (d)" : "Duration (p)"}">${item.type === "delay" ? "Length · d" : "Duration · p"}</label><input data-prop="duration" type="number" min="${state.settings.snap}" step="${state.settings.snap}" value="${item.duration}"></div>` : `<div class="field"><label>Duration</label><input value="0" disabled></div>`}
-          ${isPulse ? `<div class="field"><label title="Power / amplitude (pl)">Power · pl</label><input data-prop="amplitude" type="number" min="0.05" max="1.5" step="0.05" value="${item.amplitude}"></div>` : `<div class="field"><label>Power · pl</label><input value="—" disabled></div>`}
+          ${isPulse ? `<div class="field"><label title="Power / amplitude (pl)">Power · pl</label><input data-prop="amplitude" type="number" min="-1.5" max="1.5" step="0.05" value="${item.amplitude}"></div>` : `<div class="field"><label>Power · pl</label><input value="—" disabled></div>`}
           <div class="field"><label title="Phase (ph)">Phase · ph</label><input data-prop="phase" value="${esc(item.phase)}" placeholder="1 / rec"></div>
           ${item.type !== "delay" ? `<div class="field"><label title="Face color (fc)">Face · fc</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : `<div class="field"><label>Face · fc</label><input value="—" disabled></div>`}
           ${item.type !== "delay" ? `<div class="field"><label title="Edge color (ec)">Edge · ec</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : `<div class="field"><label>Edge · ec</label><input value="—" disabled></div>`}
@@ -1237,7 +1268,7 @@
       }
       else if (interaction.mode === "amplitude") {
         const dy = interaction.origin.y - point.y;
-        item.amplitude = round(clamp(interaction.initial.amplitude + dy / 58, .05, 1.5), 2);
+        item.amplitude = round(clamp(interaction.initial.amplitude + dy / 58, -1.5, 1.5), 2);
         interaction.snapGuide = null;
       } else {
         const result = magneticStart(item, interaction.initial.start + dx, m, event.shiftKey);
