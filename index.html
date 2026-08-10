@@ -116,6 +116,7 @@
       border: 1px solid var(--border-soft); background: var(--panel-2); border-radius: 9px;
     }
     .channel-item input { width: 100%; padding: 4px 6px; }
+    .channel-position { color: var(--muted); font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
 
     .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .palette-item {
@@ -380,6 +381,7 @@
     const DEFAULT_FACE_COLOR = "#ffffff";
     const DEFAULT_EDGE_COLOR = "#000000";
     const DEFAULT_TEXT_COLOR = "#000000";
+    const CHANNEL_Y_SPACING = 1.5;
     const SHAPE_SPECS = {
       gauss: { label: "Gaussian", params: [{ label: "Center", default: .5, step: .05 }, { label: "Sigma", default: .1667, min: .001, step: .01 }] },
       ramp: { label: "Linear ramp", params: [{ label: "Percent", default: 40, min: -100, max: 100, step: 5 }] },
@@ -409,8 +411,8 @@
         snap: .25, channelSpacing: 132, fontSize: 14, grid: true, labels: true, theme: "light"
       },
       channels: [
-        { id: "ch-f1", name: "f1 · ¹H", value: 1 },
-        { id: "ch-f2", name: "f2 · ¹³C", value: 2 }
+        { id: "ch-f1", name: "f1 · ¹H", value: 1.5 },
+        { id: "ch-f2", name: "f2 · ¹³C", value: 0 }
       ],
       elements: [], selectedId: null, activeChannelId: "ch-f1"
     };
@@ -430,7 +432,7 @@
     const templates = {
       spinEcho: {
         settings: { title: "Basic 1D Spin-Echo", timeRange: 24, figureWidth: 9, figureHeight: 2.6 },
-        channels: [{ id: "ch-h", name: "f1 · ¹H", value: 1 }],
+        channels: [{ id: "ch-h", name: "f1 · ¹H", value: 0 }],
         elements: [
           el("pulse", "ch-h", 1, 1, { amplitude: .8, phase: "1", text: "$90^\\circ$" }),
           el("delay", "ch-h", 2, 7, { text: "$\\tau$" }),
@@ -442,8 +444,8 @@
       cpmas: {
         settings: { title: "Cross-Polarization (CP-MAS)", timeRange: 20, figureWidth: 10, figureHeight: 4.5 },
         channels: [
-          { id: "ch-h", name: "f1 · ¹H", value: 1 },
-          { id: "ch-c", name: "f2 · ¹³C", value: 2 }
+          { id: "ch-h", name: "f1 · ¹H", value: 1.5 },
+          { id: "ch-c", name: "f2 · ¹³C", value: 0 }
         ],
         elements: [
           el("pulse", "ch-h", 1, 1, { amplitude: .85, phase: "1", text: "$90^\\circ$" }),
@@ -465,13 +467,19 @@
       };
     }
 
+    function positionChannels(channels) {
+      const highest = (channels.length - 1) * CHANNEL_Y_SPACING;
+      channels.forEach((channel, index) => { channel.value = round(highest - index * CHANNEL_Y_SPACING); });
+      return channels;
+    }
+
     function normalizeState(candidate) {
       const result = deepCopy(defaults);
       if (!candidate || typeof candidate !== "object") return result;
       result.settings = { ...result.settings, ...(candidate.settings || {}) };
-      result.channels = Array.isArray(candidate.channels) && candidate.channels.length
-        ? candidate.channels.map((channel, i) => ({ id: channel.id || uid("ch"), name: channel.name || `f${i + 1}`, value: Number(channel.value ?? i + 1) }))
-        : result.channels;
+      result.channels = positionChannels(Array.isArray(candidate.channels) && candidate.channels.length
+        ? candidate.channels.map((channel, i) => ({ id: channel.id || uid("ch"), name: channel.name || `f${i + 1}`, value: 0 }))
+        : result.channels);
       const channelIds = new Set(result.channels.map(channel => channel.id));
       result.elements = Array.isArray(candidate.elements) ? candidate.elements
         .filter(item => item && channelIds.has(item.channel))
@@ -849,7 +857,7 @@
       list.innerHTML = state.channels.map((channel, index) => `
         <div class="channel-item" data-channel-id="${esc(channel.id)}">
           <input aria-label="Channel ${index + 1} name" data-channel-name value="${esc(channel.name)}">
-          <input aria-label="Channel ${index + 1} f value" data-channel-value type="number" step="1" value="${esc(channel.value)}" title="pulseplot f value">
+          <span class="channel-position" aria-label="Channel ${index + 1} y position" title="Automatic pulseplot y position">y=${esc(formatNum(channel.value))}</span>
           <button class="btn tiny danger" data-remove-channel title="Remove channel" ${state.channels.length === 1 ? "disabled" : ""}>×</button>
         </div>`).join("");
     }
@@ -1328,7 +1336,7 @@
       checkpoint();
       const template = deepCopy(templates[name]);
       state.settings = { ...deepCopy(defaults.settings), ...template.settings, theme: state.settings.theme };
-      state.channels = template.channels;
+      state.channels = positionChannels(template.channels);
       state.elements = template.elements;
       state.selectedId = state.elements[0]?.id || null;
       state.activeChannelId = state.channels[0].id;
@@ -1346,20 +1354,19 @@
       $("#addChannelBtn").addEventListener("click", () => {
         checkpoint();
         const number = state.channels.length + 1;
-        const channel = { id: uid("ch"), name: `f${number}`, value: number };
-        state.channels.push(channel); state.activeChannelId = channel.id; changed();
+        const channel = { id: uid("ch"), name: `f${number}`, value: 0 };
+        state.channels.push(channel); positionChannels(state.channels); state.activeChannelId = channel.id; changed();
       });
 
       $("#channelList").addEventListener("focusin", event => {
-        if (event.target.matches("[data-channel-name], [data-channel-value]")) event.target.dataset.before = snapshot();
+        if (event.target.matches("[data-channel-name]")) event.target.dataset.before = snapshot();
       });
       $("#channelList").addEventListener("input", event => {
         const row = event.target.closest("[data-channel-id]");
-        if (!row || !event.target.matches("[data-channel-name], [data-channel-value]")) return;
+        if (!row || !event.target.matches("[data-channel-name]")) return;
         const channel = state.channels.find(item => item.id === row.dataset.channelId);
         if (channel) {
-          if (event.target.matches("[data-channel-name]")) channel.name = event.target.value;
-          else channel.value = Number(event.target.value);
+          channel.name = event.target.value;
           changed({ inspector: false });
         }
       });
@@ -1379,6 +1386,7 @@
           if (count && !confirm(`Remove this channel and its ${count} element${count === 1 ? "" : "s"}?`)) return;
           checkpoint();
           state.channels = state.channels.filter(item => item.id !== row.dataset.channelId);
+          positionChannels(state.channels);
           state.elements = state.elements.filter(item => item.channel !== row.dataset.channelId);
           state.activeChannelId = state.channels[0].id;
           if (!state.elements.some(item => item.id === state.selectedId)) state.selectedId = null;
