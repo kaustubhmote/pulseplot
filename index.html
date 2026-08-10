@@ -1100,7 +1100,9 @@
       const needsNumpy = state.elements.some(isCustomShape);
       const lines = ["import pulseplot as pplot", "import matplotlib.pyplot as plt"];
       if (needsNumpy) lines.push("import numpy as np");
-      lines.push("", `fig, ax = pplot.subplots(`, `    nrows=${state.channels.length},`, "    ncols=1,", "    sharex=True,", "    squeeze=False,", `    figsize=(${formatNum(state.settings.figureWidth)}, ${formatNum(state.settings.figureHeight)}),`, ")", "axes = ax[:, 0]", "");
+      lines.push("", `fig, ax = pplot.subplots(`, `    figsize=(${formatNum(state.settings.figureWidth)}, ${formatNum(state.settings.figureHeight)}),`, ")");
+      lines.push(`ax.draw_channels(${state.channels.map(channel => formatNum(channel.value)).join(", ")})`);
+      lines.push(`ax.fontsize = ${formatNum(state.settings.fontSize)}`, "");
 
       state.channels.forEach((channel, index) => {
         const channelItems = state.elements.filter(item => item.channel === channel.id).sort((a, b) => a.start - b.start);
@@ -1115,16 +1117,13 @@
           if (aliases.face || aliases.edge) colorAliases.set(item.id, aliases);
         });
         lines.push(`# Channel ${index + 1}: ${channel.name.replace(/\n/g, " ")}`);
-        lines.push(`axes[${index}].draw_channels(${formatNum(channel.value)})`);
-        lines.push(`axes[${index}].set_title(${pythonQuote(channel.name)}, fontsize=${formatNum(state.settings.fontSize)})`);
-        lines.push(`axes[${index}].fontsize = ${formatNum(state.settings.fontSize)}`);
         standard.filter(item => colorAliases.has(item.id)).forEach(item => {
           const aliases = colorAliases.get(item.id);
-          if (aliases.face) lines.push(`axes[${index}].params["fc_${aliases.face}"] = ${pythonQuote(item.facecolor)}`);
-          if (aliases.edge) lines.push(`axes[${index}].params["ec_${aliases.edge}"] = ${pythonQuote(item.edgecolor)}`);
+          if (aliases.face) lines.push(`ax.params["fc_${aliases.face}"] = ${pythonQuote(item.facecolor)}`);
+          if (aliases.edge) lines.push(`ax.params["ec_${aliases.edge}"] = ${pythonQuote(item.edgecolor)}`);
         });
         if (standard.length) {
-          lines.push(`axes[${index}].pseq(r"""`);
+          lines.push(`ax.pseq(r"""`);
           standard.forEach(item => lines.push(pulseToken(item, true, colorAliases.get(item.id) || {})));
           lines.push('""")');
         }
@@ -1139,12 +1138,13 @@
           const styleArgs = [];
           if (!isDefaultFaceColor(item.facecolor)) styleArgs.push(`facecolor=${pythonQuote(item.facecolor)}`);
           if (!isDefaultEdgeColor(item.edgecolor)) styleArgs.push(`edgecolor=${pythonQuote(item.edgecolor)}`);
-          lines.push(`axes[${index}].pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}${styleArgs.length ? `, ${styleArgs.join(", ")}` : ""})`);
+          lines.push(`ax.pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}${styleArgs.length ? `, ${styleArgs.join(", ")}` : ""})`);
         });
-        lines.push(`axes[${index}].set_xlim(0, ${formatNum(state.settings.timeRange)})`);
-        if (state.settings.grid) lines.push(`axes[${index}].grid(axis="x", alpha=0.18)`);
         lines.push("");
       });
+      lines.push(`ax.set_xlim(0, ${formatNum(state.settings.timeRange)})`);
+      if (state.settings.grid) lines.push(`ax.grid(axis="x", alpha=0.18)`);
+      lines.push("");
       if (state.settings.title) lines.push(`fig.suptitle(${pythonQuote(state.settings.title)}, fontsize=${formatNum(state.settings.fontSize + 2)})`);
       lines.push("plt.tight_layout()", 'plt.savefig("pulse_sequence.png", dpi=300)', "plt.show()", "");
       return lines.join("\n");
