@@ -387,9 +387,11 @@
           </div>
         </div>
 
-        <section class="plot-settings-card" aria-label="Plot settings">
-          <h2 class="section-title">Plot settings</h2>
+        <section class="plot-settings-card" aria-label="Settings">
+          <h2 class="section-title">Settings</h2>
           <div class="plot-settings-inline" id="settingsForm">
+            <label class="check-field"><input id="gridToggle" data-setting="grid" type="checkbox"> Grid</label>
+            <label class="check-field"><input id="labelsToggle" data-setting="labels" type="checkbox"> Labels</label>
             <div class="field title-setting"><label for="plotTitle">Title</label><input id="plotTitle" data-setting="title" value="Pulse sequence"></div>
             <div class="field"><label for="figureWidth" title="Figure width (inches)">Width (in)</label><input id="figureWidth" data-setting="figureWidth" type="number" min="3" max="20" step="0.5"></div>
             <div class="field"><label for="figureHeight" title="Figure height (inches)">Height (in)</label><input id="figureHeight" data-setting="figureHeight" type="number" min="1" max="20" step="0.5"></div>
@@ -397,8 +399,6 @@
             <div class="field"><label for="snapSize" title="Snap increment">Snap</label><input id="snapSize" data-setting="snap" type="number" min="0.01" step="0.05"></div>
             <div class="field"><label for="channelSpacing" title="Channel spacing">Channel gap</label><input id="channelSpacing" data-setting="channelSpacing" type="number" min="90" max="220" step="5"></div>
             <div class="field"><label for="fontSize">Font</label><input id="fontSize" data-setting="fontSize" type="number" min="8" max="28" step="1"></div>
-            <label class="check-field"><input id="gridToggle" data-setting="grid" type="checkbox"> Grid</label>
-            <label class="check-field"><input id="labelsToggle" data-setting="labels" type="checkbox"> Labels</label>
           </div>
         </section>
 
@@ -2817,21 +2817,22 @@
       return node;
     }
 
-    function canvasMetrics() {
-      const width = Math.max(820, $("#canvasShell").clientWidth || 820);
+    function canvasMetrics({ width = null, height = null } = {}) {
+      const resolvedWidth = width ?? Math.max(820, $("#canvasShell").clientWidth || 820);
       const left = 104, right = 28, top = 48, bottom = 34;
-      const height = top + bottom + state.channels.length * state.settings.channelSpacing;
-      const plotWidth = width - left - right;
-      return { width, height, left, right, top, bottom, plotWidth, xScale: plotWidth / Math.max(1, state.settings.timeRange) };
+      const resolvedHeight = height ?? top + bottom + state.channels.length * state.settings.channelSpacing;
+      const channelSpacing = (resolvedHeight - top - bottom) / Math.max(1, state.channels.length);
+      const plotWidth = resolvedWidth - left - right;
+      return { width: resolvedWidth, height: resolvedHeight, left, right, top, bottom, channelSpacing, plotWidth, xScale: plotWidth / Math.max(1, state.settings.timeRange) };
     }
 
     function channelAtY(y, metrics = canvasMetrics()) {
-      const index = clamp(Math.floor((y - metrics.top) / state.settings.channelSpacing), 0, state.channels.length - 1);
+      const index = clamp(Math.floor((y - metrics.top) / metrics.channelSpacing), 0, state.channels.length - 1);
       return state.channels[index];
     }
     function channelY(channelId, metrics = canvasMetrics()) {
       const index = Math.max(0, state.channels.findIndex(channel => channel.id === channelId));
-      return metrics.top + index * state.settings.channelSpacing + state.settings.channelSpacing / 2;
+      return metrics.top + index * metrics.channelSpacing + metrics.channelSpacing / 2;
     }
     function snap(value) { return round(Math.round(value / state.settings.snap) * state.settings.snap); }
     function alignmentAnchors(item, start = item.start) {
@@ -3012,17 +3013,16 @@
         .replace(/[{}]/g, "");
     }
 
-    function renderCanvas({ clean = false, exportWidth = null } = {}) {
+    function renderCanvas({ clean = false } = {}) {
       const svg = clean ? svgEl("svg") : $("#sequenceCanvas");
-      const m = canvasMetrics();
-      const width = exportWidth || m.width;
-      const scale = width / m.width;
-      const height = m.height * scale;
+      const m = clean
+        ? canvasMetrics({ width: state.settings.figureWidth * 96, height: state.settings.figureHeight * 96 })
+        : canvasMetrics();
       svg.replaceChildren();
       svg.setAttribute("xmlns", NS);
       svg.setAttribute("viewBox", `0 0 ${m.width} ${m.height}`);
-      svg.setAttribute("width", width);
-      svg.setAttribute("height", height);
+      svg.setAttribute("width", m.width);
+      svg.setAttribute("height", m.height);
       svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
       svg.style.background = clean ? "#ffffff" : "transparent";
 
@@ -3049,7 +3049,7 @@
       state.channels.forEach(channel => {
         const y = channelY(channel.id, m);
         const active = channel.id === state.activeChannelId;
-        if (!clean && active) svg.append(svgEl("rect", { x: 0, y: y - state.settings.channelSpacing / 2 + 3, width: m.width, height: state.settings.channelSpacing - 6, fill: border, opacity: .12 }));
+        if (!clean && active) svg.append(svgEl("rect", { x: 0, y: y - m.channelSpacing / 2 + 3, width: m.width, height: m.channelSpacing - 6, fill: border, opacity: .12 }));
         svg.append(svgEl("line", { x1: m.left, y1: y, x2: m.width - m.right, y2: y, stroke: clean ? "#667085" : border, "stroke-width": 1.3 }));
         if (state.settings.labels) {
           svg.append(svgEl("rect", { x: 13, y: y - 16, width: 74, height: 32, rx: 8, fill: clean ? "#f4f6f8" : "transparent", stroke: clean ? "#d7dde6" : border }));
@@ -3072,7 +3072,7 @@
         if (item.type === "delay") {
           // Delays are gaps on the existing channel baseline. The transparent
           // hit area keeps an unlabelled delay selectable without drawing it.
-          group.append(svgEl("rect", { x, y: y - 13, width: w, height: 26, fill: "transparent", class: "delay-hit" }));
+          if (!clean) group.append(svgEl("rect", { x, y: y - 13, width: w, height: 26, fill: "transparent", class: "delay-hit" }));
         } else if (item.type === "marker") {
           const markerTop = Math.min(y, y - h), markerBottom = Math.max(y, y - h);
           group.append(svgEl("line", { x1: x, y1: y, x2: x, y2: y - h, stroke: item.edgecolor, "stroke-width": 2 }));
@@ -3122,7 +3122,7 @@
           }
           if (item.type === "pulse" || item.type === "marker" || isShapedElement(item)) group.append(svgEl("circle", { cx: x + w / 2, cy: y - h, r: 6, fill: selectedColor, "data-handle": "amplitude", style: "cursor:ns-resize" }));
         }
-        svg.append(group);
+        if (!clean || group.childNodes.length) svg.append(group);
       });
 
       if (!clean && interaction?.snapGuide) {
@@ -3628,8 +3628,6 @@
 
     function cleanSvgString() {
       const svg = renderCanvas({ clean: true });
-      svg.setAttribute("width", Math.round(state.settings.figureWidth * 96));
-      svg.setAttribute("height", Math.round(state.settings.figureHeight * 96));
       svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
       return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(svg)}`;
     }
@@ -3641,15 +3639,12 @@
       try {
         const image = new Image();
         await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
-        const m = canvasMetrics();
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(state.settings.figureWidth * 300);
         canvas.height = Math.round(state.settings.figureHeight * 300);
         const context = canvas.getContext("2d");
         context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
-        const fit = Math.min(canvas.width / m.width, canvas.height / m.height);
-        const drawWidth = m.width * fit, drawHeight = m.height * fit;
-        context.drawImage(image, (canvas.width - drawWidth) / 2, (canvas.height - drawHeight) / 2, drawWidth, drawHeight);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
         const png = await new Promise(resolve => canvas.toBlob(resolve, "image/png", 1));
         download("pulse_sequence.png", png);
         toast("High-resolution PNG exported");
