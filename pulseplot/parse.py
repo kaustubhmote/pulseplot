@@ -550,6 +550,12 @@ class Delay(Pulse):
                 spans.get(item),
             )
 
+        try:
+            if args['text'].startswith('`') and args['text'].endswith('`'):
+                args['text'] = args['text'][1:-1]
+        except AttributeError:
+            pass
+
         self.__dict__ = {**self.__dict__, **args, **params}
 
         self.plen = self.time

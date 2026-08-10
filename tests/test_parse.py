@@ -78,6 +78,13 @@ def test_parse_base_4():
     assert p.text == "text with spaces"
 
 
+def test_quoted_delay_text():
+    delay = Delay(r"d1 tx=`$\tau$`")
+
+    assert delay.text == r"$\tau$"
+    assert delay.label_params()["s"] == r"$\tau$"
+
+
 def test_shape():
     seq = "p1 pl1 ph1 sp0 f1"
     out = parse_base(seq, {"sp0": lambda x: x ** 2})
