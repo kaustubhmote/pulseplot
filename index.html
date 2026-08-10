@@ -378,7 +378,7 @@
             <button class="btn tiny" id="fillDelaysBtn" title="Add explicit delays to every empty interval">Fill delays</button>
             <button class="btn tiny" id="clearBtn">Clear</button>
             <span class="toolbar-divider"></span>
-            <span class="help">Hold <span class="kbd">Shift</span> for grid only · <span class="kbd">Alt-drag</span> copy</span>
+            <span class="help"><span class="kbd">Ctrl/Cmd-click</span> multi-select · <span class="kbd">Shift</span> grid only · <span class="kbd">Alt-drag</span> copy</span>
             <span class="zoom-label" id="timelineSummary"></span>
           </div>
           <div class="canvas-shell" id="canvasShell">
@@ -492,7 +492,7 @@
         { id: "ch-f1", name: "f1 · ¹H", value: 1.5 },
         { id: "ch-f2", name: "f2 · ¹³C", value: 0 }
       ],
-      elements: [], selectedId: null, activeChannelId: "ch-f1"
+      elements: [], selectedId: null, selectedIds: [], activeChannelId: "ch-f1"
     };
 
     let state = deepCopy(defaults);
@@ -2739,7 +2739,13 @@
           return normalized;
         }) : [];
       result.activeChannelId = channelIds.has(candidate.activeChannelId) ? candidate.activeChannelId : result.channels[0].id;
-      result.selectedId = result.elements.some(item => item.id === candidate.selectedId) ? candidate.selectedId : null;
+      const elementIds = new Set(result.elements.map(item => item.id));
+      const requestedSelection = Array.isArray(candidate.selectedIds) ? candidate.selectedIds : candidate.selectedId ? [candidate.selectedId] : [];
+      result.selectedIds = [...new Set(requestedSelection.filter(id => elementIds.has(id)))];
+      result.selectedId = elementIds.has(candidate.selectedId)
+        ? candidate.selectedId
+        : result.selectedIds[result.selectedIds.length - 1] || null;
+      if (result.selectedId && !result.selectedIds.includes(result.selectedId)) result.selectedIds.push(result.selectedId);
       return result;
     }
 
@@ -2754,7 +2760,7 @@
       document.documentElement.dataset.theme = state.settings.theme || "light";
     }
 
-    function snapshot() { return JSON.stringify({ settings: state.settings, channels: state.channels, elements: state.elements, selectedId: state.selectedId, activeChannelId: state.activeChannelId }); }
+    function snapshot() { return JSON.stringify({ settings: state.settings, channels: state.channels, elements: state.elements, selectedId: state.selectedId, selectedIds: state.selectedIds, activeChannelId: state.activeChannelId }); }
     function checkpoint() {
       const current = snapshot();
       if (undoStack[undoStack.length - 1] !== current) undoStack.push(current);
@@ -2911,6 +2917,18 @@
     }
     function maxEnd() { return state.elements.reduce((max, item) => Math.max(max, item.start + Math.max(0, item.duration)), 0); }
     function selected() { return state.elements.find(item => item.id === state.selectedId) || null; }
+    function selectedItems() {
+      const ids = new Set(state.selectedIds || []);
+      return state.elements.filter(item => ids.has(item.id));
+    }
+    function setSelection(ids, primaryId = null) {
+      const validIds = new Set(state.elements.map(item => item.id));
+      state.selectedIds = [...new Set(ids)].filter(id => validIds.has(id));
+      state.selectedId = primaryId && state.selectedIds.includes(primaryId)
+        ? primaryId
+        : state.selectedIds[state.selectedIds.length - 1] || null;
+    }
+    function isElementSelected(id) { return (state.selectedIds || []).includes(id); }
 
     function parseShape(shape) {
       const [rawName, ...rawParams] = String(shape || "gauss").split("_");
@@ -3090,7 +3108,7 @@
         const x = m.left + item.start * m.xScale;
         const w = Math.max(item.type === "marker" ? 1 : 3, item.duration * m.xScale);
         const h = clamp(item.amplitude, -1.5, 1.5) * 58;
-        const isSelected = !clean && item.id === state.selectedId;
+        const isSelected = !clean && isElementSelected(item.id);
         const group = svgEl("g", { "data-element-id": item.id, "data-element-type": item.type, tabindex: clean ? -1 : 0, role: clean ? "img" : "button", "aria-label": `${item.type} at ${formatNum(item.start)}` });
         const patchTarget = supportsPatchStyle(item) ? svgEl("g", { opacity: clamp(Number(item.alpha), 0, 1) }) : group;
         const hatchFill = hatchPattern(defs, item);
@@ -3224,13 +3242,100 @@
         ${spec.params.length ? `<div class="field wide-2"><label title="Generated pulseplot shape">Generated sp</label><input data-shape-preview value="${esc(composeShape(name, params))}" readonly></div>` : ""}`;
     }
 
+    function sharedProperty(items, key) {
+      const value = items[0]?.[key];
+      return items.every(item => Object.is(item[key], value)) ? value : undefined;
+    }
+
+    function batchFieldHtml(items, key, label, { type = "text", min = null, max = null, step = null, placeholder = "Mixed" } = {}) {
+      const value = sharedProperty(items, key);
+      const mixed = value === undefined;
+      const attributes = [
+        `data-batch-prop="${key}"`,
+        mixed ? 'data-mixed="true"' : "",
+        type !== "text" ? `type="${type}"` : "",
+        min !== null ? `min="${min}"` : "",
+        max !== null ? `max="${max}"` : "",
+        step !== null ? `step="${step}"` : "",
+        `value="${mixed ? "" : esc(value)}"`,
+        `placeholder="${esc(placeholder)}"`
+      ].filter(Boolean).join(" ");
+      return `<div class="field"><label>${label}</label><input ${attributes}></div>`;
+    }
+
+    function batchSelectHtml(items, key, label, options) {
+      const value = sharedProperty(items, key);
+      const mixed = value === undefined;
+      return `<div class="field"><label>${label}</label><select data-batch-prop="${key}" ${mixed ? 'data-mixed="true"' : ""}>
+        ${mixed ? '<option value="" selected>Mixed</option>' : ""}
+        ${options.map(option => `<option value="${esc(option.value)}" ${String(value) === String(option.value) ? "selected" : ""}>${esc(option.label)}</option>`).join("")}
+      </select></div>`;
+    }
+
+    function renderBatchInspector(root, items) {
+      const fields = [batchSelectHtml(items, "channel", "Channel", state.channels.map(channel => ({ value: channel.id, label: channel.name }))), batchFieldHtml(items, "start", "Start · st", { type: "number", min: 0, step: state.settings.snap })];
+      if (items.every(item => item.type !== "marker")) fields.push(batchFieldHtml(items, "duration", "Duration · p/d", { type: "number", min: state.settings.snap, step: state.settings.snap }));
+      if (items.every(item => item.type === "pulse" || item.type === "marker" || isShapedElement(item))) fields.push(batchFieldHtml(items, "amplitude", "Power · pl", { type: "number", min: -1.5, max: 1.5, step: .05 }));
+      if (items.every(item => !isRotorElement(item))) {
+        fields.push(batchFieldHtml(items, "phase", "Phase · ph"));
+        if (items.every(item => isShapedElement(item))) fields.push(batchFieldHtml(items, "shape", "Shape · sp"));
+        if (items.every(item => item.type !== "delay")) {
+          fields.push(batchFieldHtml(items, "facecolor", "Facecolor · fc", { placeholder: "Mixed color" }));
+          fields.push(batchFieldHtml(items, "edgecolor", "Edgecolor · ec", { placeholder: "Mixed color" }));
+        }
+        if (items.every(item => item.type === "pulse" || item.type === "marker" || isShapedElement(item))) fields.push(batchFieldHtml(items, "textcolor", "Text color", { placeholder: "Mixed color" }));
+        if (items.every(supportsPatchStyle)) {
+          fields.push(batchFieldHtml(items, "hatch", "Hatch · h"));
+          fields.push(batchFieldHtml(items, "alpha", "Alpha · al", { type: "number", min: 0, max: 1, step: .05 }));
+        }
+        fields.push(batchFieldHtml(items, "text", "Annotation · tx"));
+        fields.push(batchFieldHtml(items, "tdx", "Text x", { type: "number", step: .1 }));
+        fields.push(batchFieldHtml(items, "tdy", "Text y", { type: "number", step: .1 }));
+        fields.push(batchFieldHtml(items, "tfs", "Text size", { type: "number", min: 6, max: 40, step: 1 }));
+        fields.push(batchFieldHtml(items, "pdx", "Phase x", { type: "number", step: .1 }));
+        fields.push(batchFieldHtml(items, "pdy", "Phase y", { type: "number", step: .1 }));
+        fields.push(batchFieldHtml(items, "pfs", "Phase size", { type: "number", min: 6, max: 40, step: 1 }));
+        fields.push(batchSelectHtml(items, "allowOverlap", "Overlap", [{ value: true, label: "Allowed" }, { value: false, label: "Prevented" }]));
+      }
+      root.innerHTML = `
+        <div class="inspector-head">
+          <span class="type-badge">${items.length} selected</span><h2>Batch inspector</h2>
+          <div class="inspector-actions"><button class="btn tiny" data-inspector-action="duplicate">Duplicate all</button><button class="btn tiny danger" data-inspector-action="delete">Delete all</button></div>
+        </div>
+        <div class="inspector-grid">${fields.join("")}</div>`;
+    }
+
+    function applyBatchControl(control) {
+      const items = selectedItems();
+      const key = control.dataset.batchProp;
+      let value = control.type === "number" ? Number(control.value) : control.value;
+      if (key === "allowOverlap") value = value === "true";
+      if (key === "alpha") value = clamp(Number.isFinite(value) ? value : 1, 0, 1);
+      const previous = items.map(item => item[key]);
+      items.forEach(item => { item[key] = value; });
+      if (items.some(item => overlaps(item))) {
+        items.forEach((item, index) => { item[key] = previous[index]; });
+        control.value = sharedProperty(items, key) ?? "";
+        toast("Batch change rejected because it would create an overlap");
+        return false;
+      }
+      if (key === "channel") state.activeChannelId = value;
+      changed({ inspector: false });
+      return true;
+    }
+
     function renderInspector() {
       const root = $("#inspector");
-      const item = selected();
-      if (!item) {
+      const selection = selectedItems();
+      if (!selection.length) {
         root.innerHTML = '<div class="inspector-empty">Select an element to edit duration, amplitude, phase, text, and shape.</div>';
         return;
       }
+      if (selection.length > 1) {
+        renderBatchInspector(root, selection);
+        return;
+      }
+      const item = selection[0];
       if (isRotorElement(item)) {
         root.innerHTML = `
           <div class="inspector-head">
@@ -3338,7 +3443,7 @@
       if (magnetic) item.start = magneticStart(item, rawStart, canvasMetrics()).value;
       if (overlaps(item)) item.start = nextOpenStart(item);
       state.elements.push(item);
-      state.selectedId = item.id;
+      setSelection([item.id], item.id);
       state.activeChannelId = channelId;
       if (item.start + item.duration > state.settings.timeRange) state.settings.timeRange = Math.ceil(item.start + item.duration + 2);
       changed();
@@ -3346,21 +3451,27 @@
     }
 
     function deleteSelected() {
-      if (!state.selectedId) return;
+      const items = selectedItems();
+      if (!items.length) return;
       checkpoint();
-      state.elements = state.elements.filter(item => item.id !== state.selectedId);
-      state.selectedId = null;
+      const ids = new Set(items.map(item => item.id));
+      state.elements = state.elements.filter(item => !ids.has(item.id));
+      setSelection([]);
       changed();
     }
     function duplicateSelected() {
-      const item = selected();
-      if (!item) return;
+      const items = selectedItems();
+      if (!items.length) return;
       checkpoint();
-      const clone = { ...deepCopy(item), id: uid("el"), start: snap(item.start + item.duration + state.settings.snap) };
-      if (overlaps(clone)) clone.start = nextOpenStart(clone);
-      state.elements.push(clone);
-      state.selectedId = clone.id;
+      const minStart = Math.min(...items.map(item => item.start));
+      const maxEnd = Math.max(...items.map(item => item.start + Math.max(0, item.duration)));
+      const shift = Math.max(state.settings.snap, maxEnd - minStart + state.settings.snap);
+      const clones = items.map(item => ({ ...deepCopy(item), id: uid("el"), start: snap(item.start + shift) }));
+      clones.forEach(clone => { if (overlaps(clone)) clone.start = nextOpenStart(clone); state.elements.push(clone); });
+      setSelection(clones.map(clone => clone.id), clones[clones.length - 1].id);
+      state.activeChannelId = clones[clones.length - 1].channel;
       changed();
+      toast(`${clones.length} element${clones.length === 1 ? "" : "s"} duplicated`);
     }
 
     function copySelected() {
@@ -3380,7 +3491,7 @@
         start: pasteTarget ? Math.max(0, snap(pasteTarget.start)) : snap(copiedElement.start + Math.max(state.settings.snap, copiedElement.duration))
       };
       state.elements.push(clone);
-      state.selectedId = clone.id;
+      setSelection([clone.id], clone.id);
       state.activeChannelId = clone.channel;
       changed();
       toast(`${clone.type[0].toUpperCase() + clone.type.slice(1)} pasted`);
@@ -3460,7 +3571,7 @@
       }
       checkpoint();
       state.elements.push(...delays);
-      state.selectedId = delays[0].id;
+      setSelection(delays.map(delay => delay.id), delays[0].id);
       state.activeChannelId = delays[0].channel;
       changed();
       toast(`${delays.length} delay${delays.length === 1 ? "" : "s"} added`);
@@ -3580,11 +3691,16 @@
       const checkpointState = snapshot();
       let item = state.elements.find(candidate => candidate.id === group.dataset.elementId);
       if (!item) return;
+      if ((event.ctrlKey || event.metaKey) && !event.altKey) return;
       if (event.altKey) {
         item = { ...deepCopy(item), id: uid("el") };
         state.elements.push(item);
+        setSelection([item.id], item.id);
+      } else if (isElementSelected(item.id)) {
+        setSelection(state.selectedIds, item.id);
+      } else {
+        setSelection([item.id], item.id);
       }
-      state.selectedId = item.id;
       state.activeChannelId = item.channel;
       const handle = event.target.dataset.handle;
       const point = pointerToSvg(event);
@@ -3749,7 +3865,7 @@
           positionChannels(state.channels);
           state.elements = state.elements.filter(item => item.channel !== row.dataset.channelId);
           state.activeChannelId = state.channels[0].id;
-          if (!state.elements.some(item => item.id === state.selectedId)) state.selectedId = null;
+          setSelection((state.selectedIds || []).filter(id => state.elements.some(item => item.id === id)), state.selectedId);
         }
         changed();
       });
@@ -3781,11 +3897,23 @@
       svg.addEventListener("pointercancel", endCanvasInteraction);
       svg.addEventListener("click", event => {
         const group = event.target.closest("[data-element-id]");
-        if (group) { state.selectedId = group.dataset.elementId; state.activeChannelId = selected()?.channel || state.activeChannelId; }
+        if (group) {
+          const id = group.dataset.elementId;
+          const additive = event.ctrlKey || event.metaKey;
+          if (additive) {
+            const ids = new Set(state.selectedIds || []);
+            if (ids.has(id)) ids.delete(id); else ids.add(id);
+            setSelection([...ids], ids.has(id) ? id : null);
+          } else if (!isElementSelected(id)) {
+            setSelection([id], id);
+          }
+          const item = state.elements.find(candidate => candidate.id === id);
+          if (item) state.activeChannelId = item.channel;
+        }
         else {
           const point = pointerToSvg(event), metrics = canvasMetrics();
           const channel = channelAtY(point.y, metrics);
-          state.selectedId = null;
+          setSelection([]);
           state.activeChannelId = channel.id;
           pasteTarget = { channel: channel.id, start: (point.x - metrics.left) / metrics.xScale };
         }
@@ -3796,11 +3924,15 @@
       svg.addEventListener("drop", handleDrop);
 
       $("#inspector").addEventListener("focusin", event => {
-        if (event.target.matches("[data-prop], [data-shape-name], [data-shape-param]")) event.target.dataset.before = snapshot();
+        if (event.target.matches("[data-prop], [data-batch-prop], [data-shape-name], [data-shape-param]")) event.target.dataset.before = snapshot();
       });
       $("#inspector").addEventListener("input", event => {
         const item = selected();
         if (!item) return;
+        if (event.target.matches("[data-batch-prop]")) {
+          applyBatchControl(event.target);
+          return;
+        }
         if (event.target.matches("[data-shape-param]")) {
           const parsed = parseShape(item.shape);
           parsed.params[Number(event.target.dataset.shapeParam)] = Number(event.target.value);
@@ -3828,6 +3960,13 @@
       $("#inspector").addEventListener("change", event => {
         const item = selected();
         const before = event.target.dataset.before;
+        if (event.target.matches("[data-batch-prop]")) {
+          applyBatchControl(event.target);
+          if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; }
+          updateUndoButtons();
+          changed();
+          return;
+        }
         if (item && event.target.matches("[data-shape-name]")) {
           const name = event.target.value;
           item.shape = composeShape(name, SHAPE_SPECS[name].params.map(parameter => parameter.default));
@@ -3882,7 +4021,7 @@
       $("#fillDelaysBtn").addEventListener("click", fillDelays);
       $("#clearBtn").addEventListener("click", () => {
         if (state.elements.length && !confirm("Clear every element from the canvas?")) return;
-        checkpoint(); state.elements = []; state.selectedId = null; changed();
+        checkpoint(); state.elements = []; setSelection([]); changed();
       });
       $("#undoBtn").addEventListener("click", undo);
       $("#redoBtn").addEventListener("click", redo);
