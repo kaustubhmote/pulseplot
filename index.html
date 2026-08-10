@@ -1104,44 +1104,48 @@
       lines.push(`ax.draw_channels(${state.channels.map(channel => formatNum(channel.value)).join(", ")})`);
       lines.push(`ax.fontsize = ${formatNum(state.settings.fontSize)}`, "");
 
-      state.channels.forEach((channel, index) => {
+      const channelOrder = new Map(state.channels.map((channel, index) => [channel.id, index]));
+      const items = state.channels.flatMap(channel => {
         const channelItems = state.elements.filter(item => item.channel === channel.id).sort((a, b) => a.start - b.start);
-        const items = inferGapDelays(channelItems, channel.id);
-        const standard = items.filter(item => !isCustomShape(item));
-        const custom = items.filter(isCustomShape);
-        const colorAliases = new Map();
-        standard.filter(item => item.type !== "delay").forEach((item, colorIndex) => {
-          const aliases = {};
-          if (!isDefaultFaceColor(item.facecolor)) aliases.face = `face_${index}_${colorIndex}`;
-          if (!isDefaultEdgeColor(item.edgecolor)) aliases.edge = `edge_${index}_${colorIndex}`;
-          if (aliases.face || aliases.edge) colorAliases.set(item.id, aliases);
-        });
-        lines.push(`# Channel ${index + 1}: ${channel.name.replace(/\n/g, " ")}`);
-        standard.filter(item => colorAliases.has(item.id)).forEach(item => {
-          const aliases = colorAliases.get(item.id);
-          if (aliases.face) lines.push(`ax.params["fc_${aliases.face}"] = ${pythonQuote(item.facecolor)}`);
-          if (aliases.edge) lines.push(`ax.params["ec_${aliases.edge}"] = ${pythonQuote(item.edgecolor)}`);
-        });
-        if (standard.length) {
-          lines.push(`ax.pseq(r"""`);
-          standard.forEach(item => lines.push(pulseToken(item, true, colorAliases.get(item.id) || {})));
-          lines.push('""")');
-        }
-        custom.forEach(item => {
-          let shape;
-          const parsedShape = parseShape(item.shape);
-          if (parsedShape.name === "sinc") shape = `lambda x: np.abs(np.sinc(${formatNum(parsedShape.params[0])} * (x - 0.5)))`;
-          else {
-            const points = [...item.customPoints].sort((a, b) => a[0] - b[0]);
-            shape = `lambda x: np.interp(x, ${pyList(points.map(point => point[0]))}, ${pyList(points.map(point => point[1]))})`;
-          }
-          const styleArgs = [];
-          if (!isDefaultFaceColor(item.facecolor)) styleArgs.push(`facecolor=${pythonQuote(item.facecolor)}`);
-          if (!isDefaultEdgeColor(item.edgecolor)) styleArgs.push(`edgecolor=${pythonQuote(item.edgecolor)}`);
-          lines.push(`ax.pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}${styleArgs.length ? `, ${styleArgs.join(", ")}` : ""})`);
-        });
-        lines.push("");
+        return inferGapDelays(channelItems, channel.id);
       });
+      items.sort((a, b) => a.start - b.start || channelOrder.get(a.channel) - channelOrder.get(b.channel));
+
+      const standard = items.filter(item => !isCustomShape(item));
+      const custom = items.filter(isCustomShape);
+      const colorAliases = new Map();
+      standard.filter(item => item.type !== "delay").forEach((item, colorIndex) => {
+        const aliases = {};
+        if (!isDefaultFaceColor(item.facecolor)) aliases.face = `face_${colorIndex}`;
+        if (!isDefaultEdgeColor(item.edgecolor)) aliases.edge = `edge_${colorIndex}`;
+        if (aliases.face || aliases.edge) colorAliases.set(item.id, aliases);
+      });
+
+      state.channels.forEach((channel, index) => lines.push(`# Channel ${index + 1}: ${channel.name.replace(/\n/g, " ")}`));
+      standard.filter(item => colorAliases.has(item.id)).forEach(item => {
+        const aliases = colorAliases.get(item.id);
+        if (aliases.face) lines.push(`ax.params["fc_${aliases.face}"] = ${pythonQuote(item.facecolor)}`);
+        if (aliases.edge) lines.push(`ax.params["ec_${aliases.edge}"] = ${pythonQuote(item.edgecolor)}`);
+      });
+      if (standard.length) {
+        lines.push("", `ax.pseq(r"""`);
+        standard.forEach(item => lines.push(pulseToken(item, true, colorAliases.get(item.id) || {})));
+        lines.push('""")');
+      }
+      custom.forEach(item => {
+        let shape;
+        const parsedShape = parseShape(item.shape);
+        if (parsedShape.name === "sinc") shape = `lambda x: np.abs(np.sinc(${formatNum(parsedShape.params[0])} * (x - 0.5)))`;
+        else {
+          const points = [...item.customPoints].sort((a, b) => a[0] - b[0]);
+          shape = `lambda x: np.interp(x, ${pyList(points.map(point => point[0]))}, ${pyList(points.map(point => point[1]))})`;
+        }
+        const styleArgs = [];
+        if (!isDefaultFaceColor(item.facecolor)) styleArgs.push(`facecolor=${pythonQuote(item.facecolor)}`);
+        if (!isDefaultEdgeColor(item.edgecolor)) styleArgs.push(`edgecolor=${pythonQuote(item.edgecolor)}`);
+        lines.push(`ax.pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}${styleArgs.length ? `, ${styleArgs.join(", ")}` : ""})`);
+      });
+      lines.push("");
       lines.push(`ax.set_xlim(0, ${formatNum(state.settings.timeRange)})`);
       if (state.settings.grid) lines.push(`ax.grid(axis="x", alpha=0.18)`);
       lines.push("");
