@@ -2705,6 +2705,7 @@
         id: uid("el"), type, channel, start, duration, amplitude: type === "delay" ? .45 : type === "marker" ? -.2 : .75,
         phase: "", text: "", shape: type === "shaped" ? "gauss" : type === "fid" ? "fid_5_5" : "",
         facecolor: DEFAULT_FACE_COLOR, edgecolor: DEFAULT_EDGE_COLOR, textcolor: DEFAULT_TEXT_COLOR,
+        hatch: "", alpha: 1,
         truncateOff: false, tdx: 0, tdy: 0, tfs: 14, pdx: 0, pdy: 0, pfs: 14, allowOverlap: true,
         rotorInsetWidth: 1.5, rotorYOffset: .5,
         customPoints: [[0, 0], [.2, .3], [.5, 1], [.8, .3], [1, 0]], ...extra
@@ -2732,6 +2733,8 @@
           normalized.facecolor = item.facecolor || item.color || DEFAULT_FACE_COLOR;
           normalized.edgecolor = item.edgecolor || DEFAULT_EDGE_COLOR;
           normalized.textcolor = item.textcolor || DEFAULT_TEXT_COLOR;
+          normalized.hatch = String(item.hatch || "");
+          normalized.alpha = clamp(Number.isFinite(Number(item.alpha)) ? Number(item.alpha) : 1, 0, 1);
           delete normalized.color;
           return normalized;
         }) : [];
@@ -2815,6 +2818,25 @@
       Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
       if (text !== null) node.textContent = text;
       return node;
+    }
+
+    function hatchPattern(defs, item) {
+      const hatch = String(item.hatch || "");
+      if (!hatch || !supportsPatchStyle(item)) return null;
+      const size = clamp(10 - (hatch.length - 1) * 1.5, 4, 10);
+      const id = `hatch-${String(item.id).replace(/[^A-Za-z0-9_-]/g, "-")}`;
+      const pattern = svgEl("pattern", { id, width: size, height: size, patternUnits: "userSpaceOnUse" });
+      const characters = new Set(hatch);
+      const paths = [];
+      if (characters.has("/") || characters.has("x") || characters.has("*")) paths.push(`M -2 ${size} L ${size} -2 M 0 ${size + 2} L ${size + 2} 0`);
+      if (characters.has("\\") || characters.has("x") || characters.has("*")) paths.push(`M -2 0 L ${size} ${size + 2} M 0 -2 L ${size + 2} ${size}`);
+      if (characters.has("|") || characters.has("+") || characters.has("*")) paths.push(`M ${size / 2} 0 V ${size}`);
+      if (characters.has("-") || characters.has("+") || characters.has("*")) paths.push(`M 0 ${size / 2} H ${size}`);
+      paths.forEach(d => pattern.append(svgEl("path", { d, fill: "none", stroke: item.edgecolor, "stroke-width": 1.1 })));
+      if (characters.has(".")) pattern.append(svgEl("circle", { cx: size / 2, cy: size / 2, r: .9, fill: item.edgecolor }));
+      if (characters.has("o") || characters.has("O")) pattern.append(svgEl("circle", { cx: size / 2, cy: size / 2, r: characters.has("O") ? size * .3 : size * .2, fill: "none", stroke: item.edgecolor, "stroke-width": 1 }));
+      defs.append(pattern);
+      return `url(#${id})`;
     }
 
     function canvasMetrics({ width = null, height = null } = {}) {
@@ -2903,6 +2925,7 @@
 
     function isShapedElement(item) { return item.type === "shaped" || item.type === "fid"; }
     function isRotorElement(item) { return item.type === "rotor"; }
+    function supportsPatchStyle(item) { return item.type === "pulse" || item.type === "shaped"; }
 
     function composeShape(name, params = []) {
       if (name === "custom") return "custom";
@@ -3025,6 +3048,8 @@
       svg.setAttribute("height", m.height);
       svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
       svg.style.background = clean ? "#ffffff" : "transparent";
+      const defs = svgEl("defs");
+      svg.append(defs);
 
       const styles = getComputedStyle(document.documentElement);
       const textColor = clean ? "#172033" : styles.getPropertyValue("--text").trim();
@@ -3067,6 +3092,8 @@
         const h = clamp(item.amplitude, -1.5, 1.5) * 58;
         const isSelected = !clean && item.id === state.selectedId;
         const group = svgEl("g", { "data-element-id": item.id, "data-element-type": item.type, tabindex: clean ? -1 : 0, role: clean ? "img" : "button", "aria-label": `${item.type} at ${formatNum(item.start)}` });
+        const patchTarget = supportsPatchStyle(item) ? svgEl("g", { opacity: clamp(Number(item.alpha), 0, 1) }) : group;
+        const hatchFill = hatchPattern(defs, item);
         group.style.cursor = clean ? "default" : "move";
 
         if (item.type === "delay") {
@@ -3098,10 +3125,16 @@
             points.forEach(([px, py]) => path.push(`L ${x + px * w} ${y - py * h}`));
             path.push(`L ${x + w} ${y} Z`);
           }
-          group.append(svgEl("path", { d: path.join(" "), fill: truncated ? "none" : item.facecolor, "fill-opacity": .72, stroke: item.edgecolor, "stroke-width": 1.6 }));
+          const d = path.join(" ");
+          patchTarget.append(svgEl("path", { d, fill: truncated ? "none" : item.facecolor, stroke: item.edgecolor, "stroke-width": 1.6 }));
+          if (hatchFill && !truncated) patchTarget.append(svgEl("path", { d, fill: hatchFill, stroke: "none" }));
         } else {
-          group.append(svgEl("rect", { x, y: Math.min(y, y - h), width: w, height: Math.abs(h), rx: 2, fill: item.facecolor, "fill-opacity": .78, stroke: item.edgecolor, "stroke-width": 1.6 }));
+          const rect = { x, y: Math.min(y, y - h), width: w, height: Math.abs(h), rx: 2 };
+          patchTarget.append(svgEl("rect", { ...rect, fill: item.facecolor, stroke: item.edgecolor, "stroke-width": 1.6 }));
+          if (hatchFill) patchTarget.append(svgEl("rect", { ...rect, fill: hatchFill, stroke: "none" }));
         }
+
+        if (patchTarget !== group) group.append(patchTarget);
 
         const fontSize = item.tfs || state.settings.fontSize;
         const elementTextColor = item.type === "pulse" || item.type === "marker" || isShapedElement(item) ? item.textcolor : textColor;
@@ -3214,6 +3247,7 @@
         return;
       }
       const isPulse = item.type === "pulse" || item.type === "marker" || isShapedElement(item);
+      const hasPatchStyle = supportsPatchStyle(item);
       root.innerHTML = `
         <div class="inspector-head">
           <span class="type-badge">${esc(item.type)}</span><h2>Element inspector</h2>
@@ -3228,6 +3262,8 @@
           ${item.type !== "delay" ? `<div class="field"><label title="Face color (fc)">Facecolor · fc</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : `<div class="field"><label>Facecolor · fc</label><input value="—" disabled></div>`}
           ${item.type !== "delay" ? `<div class="field"><label title="Edge color (ec)">Edgecolor · ec</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : `<div class="field"><label>Edgecolor · ec</label><input value="—" disabled></div>`}
           ${isPulse ? `<div class="field"><label title="Annotation and phase text color">Text color</label><input data-prop="textcolor" type="color" value="${esc(item.textcolor)}"></div>` : `<div class="field"><label>Text color</label><input value="—" disabled></div>`}
+          ${hasPatchStyle ? `<div class="field"><label title="Matplotlib hatch pattern (h)">Hatch · h</label><input data-prop="hatch" value="${esc(item.hatch)}" placeholder="///, xx, .."></div>` : ""}
+          ${hasPatchStyle ? `<div class="field"><label title="Patch opacity (al)">Alpha · al</label><input data-prop="alpha" type="number" min="0" max="1" step="0.05" value="${item.alpha}"></div>` : ""}
           <div class="field wide-4"><label title="Annotation (tx); LaTeX accepted">Annotation · tx</label><input data-prop="text" value="${esc(item.text)}" placeholder="$\\tau$, $90^\\circ$, CP"></div>
           <div class="field"><label title="Text x offset (tdx)">Text x</label><input data-prop="tdx" type="number" step="0.1" value="${item.tdx}"></div>
           <div class="field"><label title="Text y offset (tdy)">Text y</label><input data-prop="tdy" type="number" step="0.1" value="${item.tdy}"></div>
@@ -3363,6 +3399,11 @@
       if (item.pdx) parts.push(`pdx=${formatNum(item.pdx)}`);
       if (item.pdy) parts.push(`pdy=${formatNum(item.pdy)}`);
       if (item.pfs !== 14) parts.push(`pfs=${formatNum(item.pfs)}`);
+      if (supportsPatchStyle(item)) {
+        const alpha = clamp(Number.isFinite(Number(item.alpha)) ? Number(item.alpha) : 1, 0, 1);
+        if (alpha !== 1) parts.push(`al=${formatNum(alpha)}`);
+        if (String(item.hatch || "").trim()) parts.push(`h=${safeToken(item.hatch)}`);
+      }
       if (includeShape && isShapedElement(item) && item.shape) parts.push(`sp=${safeToken(item.shape)}`);
       if (isShapedElement(item) && (item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name))) parts.push("troff");
       if (colorAliases.face && item.type !== "delay") parts.push(`fc_${colorAliases.face}`);
@@ -3772,7 +3813,9 @@
         if (!event.target.matches("[data-prop]")) return;
         const key = event.target.dataset.prop;
         const previous = item[key];
-        item[key] = event.target.type === "checkbox" ? event.target.checked : event.target.type === "number" ? Number(event.target.value) : event.target.value;
+        const value = event.target.type === "checkbox" ? event.target.checked : event.target.type === "number" ? Number(event.target.value) : event.target.value;
+        item[key] = key === "alpha" ? clamp(Number.isFinite(value) ? value : 1, 0, 1) : value;
+        if (key === "alpha") event.target.value = item.alpha;
         if (overlaps(item)) {
           item[key] = previous;
           event.target.value = previous;
@@ -3804,7 +3847,8 @@
         }
         if (item && event.target.matches("[data-prop]")) {
           const key = event.target.dataset.prop;
-          item[key] = event.target.type === "checkbox" ? event.target.checked : event.target.type === "number" ? Number(event.target.value) : event.target.value;
+          const value = event.target.type === "checkbox" ? event.target.checked : event.target.type === "number" ? Number(event.target.value) : event.target.value;
+          item[key] = key === "alpha" ? clamp(Number.isFinite(value) ? value : 1, 0, 1) : value;
         }
         if (before && before !== snapshot()) { undoStack.push(before); redoStack = []; }
         updateUndoButtons();
