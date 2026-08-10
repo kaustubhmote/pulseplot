@@ -133,6 +133,8 @@
     .delay-icon::before, .delay-icon::after { content: ""; position: absolute; bottom: -5px; width: 2px; height: 10px; background: currentColor; }
     .delay-icon::after { right: 0; }
     .marker-icon { width: 2px; height: 27px; margin-left: 23px; background: currentColor; }
+    .fid-icon { width: 52px; height: 28px; }
+    .rotor-icon { width: 48px; height: 16px; border: 2px solid currentColor; border-radius: 8px; transform: rotate(-24deg); margin-left: 2px; }
     .shape-icon { width: 52px; height: 28px; }
 
     .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -295,6 +297,12 @@
             <div class="palette-item" draggable="true" tabindex="0" data-kind="marker" role="button">
               <div class="palette-icon"><span class="marker-icon"></span></div><strong>Marker</strong><small>Zero length</small>
             </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="fid" role="button">
+              <div class="palette-icon"><svg class="fid-icon" viewBox="0 0 52 28" aria-hidden="true"><path d="M1 3 C4 27 8 27 11 3 C14 22 18 22 21 5 C24 18 28 18 31 8 C34 15 38 15 41 10 C44 13 48 13 51 11" fill="none" stroke="currentColor" stroke-width="2"/></svg></div><strong>FID</strong><small>Acquisition signal</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="rotor" role="button">
+              <div class="palette-icon"><span class="rotor-icon"></span></div><strong>Rotor</strong><small>MAS rotor overlay</small>
+            </div>
           </div>
           <p class="help">Drag onto the canvas, or click to append to the active channel.</p>
         </section>
@@ -331,12 +339,12 @@
             <button class="btn tiny" id="fillDelaysBtn" title="Add explicit delays to every empty interval">Fill delays</button>
             <button class="btn tiny" id="clearBtn">Clear</button>
             <span class="toolbar-divider"></span>
-            <span class="help">Magnetic alignment · hold <span class="kbd">Shift</span> for grid only · <span class="kbd">Alt-drag</span> copy</span>
+            <span class="help">Hold <span class="kbd">Shift</span> for grid only · <span class="kbd">Alt-drag</span> copy</span>
             <span class="zoom-label" id="timelineSummary"></span>
           </div>
           <div class="canvas-shell" id="canvasShell">
             <svg id="sequenceCanvas" role="application" aria-label="Interactive pulse sequence timeline"></svg>
-            <div class="empty-hint" id="emptyHint"><div>Drop a pulse, delay, or marker onto a channel</div></div>
+            <div class="empty-hint" id="emptyHint"><div>Drop an element onto a channel</div></div>
           </div>
         </div>
 
@@ -452,7 +460,7 @@
           el("delay", "ch-h", 2, 7, { text: "$\\tau$" }),
           el("pulse", "ch-h", 9, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
           el("delay", "ch-h", 11, 7, { text: "$\\tau$" }),
-          el("shaped", "ch-h", 18, 4, { amplitude: .8, shape: "fid_5_5", phase: "rec", text: "acquire" })
+          el("shaped", "ch-h", 18, 4, { amplitude: .8, shape: "fid_5_5", phase: "rec" })
         ]
       },
       cpmas: {
@@ -466,17 +474,18 @@
           el("shaped", "ch-h", 2, 7, { amplitude: .8, shape: "ramp_-30", phase: "_x", text: "CP", allowOverlap: true }),
           el("pulse", "ch-c", 2, 7, { amplitude: .62, phase: "2", text: "CP", allowOverlap: true }),
           el("pulse", "ch-h", 9, 8, { amplitude: .42, text: "decoupling", allowOverlap: true }),
-          el("shaped", "ch-c", 9, 8, { amplitude: .72, shape: "fid_5_5", phase: "rec", text: "acquire", allowOverlap: true })
+          el("shaped", "ch-c", 9, 8, { amplitude: .72, shape: "fid_5_5", phase: "rec", allowOverlap: true })
         ]
       }
     };
 
     function el(type, channel, start, duration, extra = {}) {
       return {
-        id: uid("el"), type, channel, start, duration, amplitude: type === "delay" ? .45 : .75,
-        phase: "", text: "", shape: type === "shaped" ? "gauss" : "",
+        id: uid("el"), type, channel, start, duration, amplitude: type === "delay" ? .45 : type === "marker" ? -.2 : .75,
+        phase: "", text: "", shape: type === "shaped" ? "gauss" : type === "fid" ? "fid_5_5" : "",
         facecolor: DEFAULT_FACE_COLOR, edgecolor: DEFAULT_EDGE_COLOR, textcolor: DEFAULT_TEXT_COLOR,
         truncateOff: false, tdx: 0, tdy: 0, tfs: 14, pdx: 0, pdy: 0, pfs: 14, allowOverlap: true,
+        rotorInsetWidth: 1.5, rotorYOffset: .5,
         customPoints: [[0, 0], [.2, .3], [.5, 1], [.8, .3], [1, 0]], ...extra
       };
     }
@@ -670,6 +679,9 @@
       return { name, params, spec };
     }
 
+    function isShapedElement(item) { return item.type === "shaped" || item.type === "fid"; }
+    function isRotorElement(item) { return item.type === "rotor"; }
+
     function composeShape(name, params = []) {
       if (name === "custom") return "custom";
       const spec = SHAPE_SPECS[name] || SHAPE_SPECS.gauss;
@@ -794,7 +806,7 @@
         }
       });
 
-      [...state.elements].sort((a, b) => a.start - b.start).forEach(item => {
+      [...state.elements].sort((a, b) => Number(isRotorElement(a)) - Number(isRotorElement(b)) || a.start - b.start).forEach(item => {
         const channel = state.channels.find(c => c.id === item.channel);
         if (!channel) return;
         const y = channelY(item.channel, m);
@@ -810,9 +822,19 @@
           // hit area keeps an unlabelled delay selectable without drawing it.
           group.append(svgEl("rect", { x, y: y - 13, width: w, height: 26, fill: "transparent", class: "delay-hit" }));
         } else if (item.type === "marker") {
-          group.append(svgEl("line", { x1: x, y1: y - 48, x2: x, y2: y + 17, stroke: item.edgecolor, "stroke-width": 2 }));
-          group.append(svgEl("rect", { x: x - 7, y: y - 49, width: 14, height: 67, fill: "transparent" }));
-        } else if (item.type === "shaped") {
+          const markerTop = Math.min(y, y - h), markerBottom = Math.max(y, y - h);
+          group.append(svgEl("line", { x1: x, y1: y, x2: x, y2: y - h, stroke: item.edgecolor, "stroke-width": 2 }));
+          group.append(svgEl("rect", { x: x - 7, y: markerTop - 8, width: 14, height: Math.max(16, markerBottom - markerTop + 16), fill: "transparent" }));
+        } else if (isRotorElement(item)) {
+          const rotorRadius = clamp(item.duration * .1 * 18, 7, 24);
+          const rotorCenterX = x + w / 2;
+          const rotorCenterY = y - item.rotorYOffset * 58;
+          const rotor = svgEl("g", { transform: `rotate(-54.7 ${rotorCenterX} ${rotorCenterY})` });
+          rotor.append(svgEl("rect", { x, y: rotorCenterY - rotorRadius, width: w, height: rotorRadius * 2, rx: rotorRadius, fill: "#d8dde6", stroke: item.edgecolor, "stroke-width": 1.5 }));
+          rotor.append(svgEl("rect", { x: x + w * .08, y: rotorCenterY - rotorRadius, width: Math.max(3, w * .1), height: rotorRadius * 2, fill: "#aeb7c5" }));
+          rotor.append(svgEl("line", { x1: x + w * .82, y1: rotorCenterY - rotorRadius, x2: x + w * .82, y2: rotorCenterY + rotorRadius, stroke: "#8d97a7", "stroke-width": 2 }));
+          group.append(rotor);
+        } else if (isShapedElement(item)) {
           const points = shapeValues(item);
           const shapeName = parseShape(item.shape).name;
           const truncated = item.truncateOff || shapeName === "fid" || shapeName === "fid2";
@@ -830,7 +852,7 @@
         }
 
         const fontSize = item.tfs || state.settings.fontSize;
-        const elementTextColor = item.type === "pulse" || item.type === "shaped" ? item.textcolor : textColor;
+        const elementTextColor = item.type === "pulse" || item.type === "marker" || isShapedElement(item) ? item.textcolor : textColor;
         if (item.text) group.append(svgEl("text", { x: x + w / 2 + item.tdx * m.xScale, y: y - h / 2 - item.tdy * 18, fill: elementTextColor, "font-size": fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, displayMath(item.text)));
         if (item.phase) {
           const phaseText = item.phase.startsWith("_") ? item.phase.slice(1) : `φ${item.phase}`;
@@ -840,13 +862,13 @@
         if (isSelected) {
           const outlineX = item.type === "marker" ? x - 8 : x - 4;
           const outlineW = item.type === "marker" ? 16 : w + 8;
-          const outlineTop = item.type === "marker" ? y - 54 : Math.min(y, y - h) - 14;
-          const outlineBottom = item.type === "marker" ? y + 23 : Math.max(y, y - h) + 14;
+          const outlineTop = item.type === "marker" ? Math.min(y, y - h) - 14 : isRotorElement(item) ? y - item.rotorYOffset * 58 - clamp(item.duration * .1 * 18, 7, 24) - 18 : Math.min(y, y - h) - 14;
+          const outlineBottom = item.type === "marker" ? Math.max(y, y - h) + 14 : isRotorElement(item) ? y - item.rotorYOffset * 58 + clamp(item.duration * .1 * 18, 7, 24) + 18 : Math.max(y, y - h) + 14;
           group.append(svgEl("rect", { x: outlineX, y: outlineTop, width: outlineW, height: outlineBottom - outlineTop, rx: 5, fill: "none", stroke: selectedColor, "stroke-width": 1.5, "stroke-dasharray": "4 3", "pointer-events": "none" }));
           if (item.type !== "marker") {
             group.append(svgEl("rect", { x: x + w - 5, y: y - 12, width: 10, height: 24, rx: 3, fill: selectedColor, "data-handle": "duration", style: "cursor:ew-resize" }));
           }
-          if (item.type === "pulse" || item.type === "shaped") group.append(svgEl("circle", { cx: x + w / 2, cy: y - h, r: 6, fill: selectedColor, "data-handle": "amplitude", style: "cursor:ns-resize" }));
+          if (item.type === "pulse" || item.type === "marker" || isShapedElement(item)) group.append(svgEl("circle", { cx: x + w / 2, cy: y - h, r: 6, fill: selectedColor, "data-handle": "amplitude", style: "cursor:ns-resize" }));
         }
         svg.append(group);
       });
@@ -924,7 +946,22 @@
         root.innerHTML = '<div class="inspector-empty">Select an element to edit duration, amplitude, phase, text, and shape.</div>';
         return;
       }
-      const isPulse = item.type === "pulse" || item.type === "shaped";
+      if (isRotorElement(item)) {
+        root.innerHTML = `
+          <div class="inspector-head">
+            <span class="type-badge">rotor</span><h2>Rotor inspector</h2>
+            <div class="inspector-actions"><button class="btn tiny" data-inspector-action="duplicate">Duplicate</button><button class="btn tiny danger" data-inspector-action="delete">Delete</button></div>
+          </div>
+          <div class="inspector-grid">
+            <div class="field wide-2"><label>Channel</label><select data-prop="channel">${state.channels.map(channel => `<option value="${esc(channel.id)}" ${channel.id === item.channel ? "selected" : ""}>${esc(channel.name)}</option>`).join("")}</select></div>
+            <div class="field"><label title="Left edge of rotor overlay">Start</label><input data-prop="start" type="number" min="0" step="${state.settings.snap}" value="${item.start}"></div>
+            <div class="field"><label title="Rotor body length">Length</label><input data-prop="duration" type="number" min="${state.settings.snap}" step="${state.settings.snap}" value="${item.duration}"></div>
+            <div class="field"><label title="Size of the Matplotlib inset axes in inches">Inset size</label><input data-prop="rotorInsetWidth" type="number" min="0.25" step="0.25" value="${item.rotorInsetWidth}"></div>
+            <div class="field"><label title="Vertical offset above the assigned channel">Y offset</label><input data-prop="rotorYOffset" type="number" step="0.05" value="${item.rotorYOffset}"></div>
+          </div>`;
+        return;
+      }
+      const isPulse = item.type === "pulse" || item.type === "marker" || isShapedElement(item);
       root.innerHTML = `
         <div class="inspector-head">
           <span class="type-badge">${esc(item.type)}</span><h2>Element inspector</h2>
@@ -946,12 +983,12 @@
           <div class="field"><label title="Phase x offset (pdx)">Phase x</label><input data-prop="pdx" type="number" step="0.1" value="${item.pdx}"></div>
           <div class="field"><label title="Phase y offset (pdy)">Phase y</label><input data-prop="pdy" type="number" step="0.1" value="${item.pdy}"></div>
           <div class="field"><label title="Phase size (pfs)">Phase size</label><input data-prop="pfs" type="number" min="6" max="40" value="${item.pfs}"></div>
-          ${item.type === "shaped" ? shapeControlsHtml(item) : ""}
-          ${item.type === "shaped" ? `<label class="check-field field wide-3"><input data-prop="truncateOff" type="checkbox" ${item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name) ? "checked" : ""} ${["fid", "fid2"].includes(parseShape(item.shape).name) ? "disabled" : ""}> Truncate edges (troff)${["fid", "fid2"].includes(parseShape(item.shape).name) ? " · automatic" : ""}</label>` : ""}
+          ${isShapedElement(item) ? shapeControlsHtml(item) : ""}
+          ${isShapedElement(item) ? `<label class="check-field field wide-3"><input data-prop="truncateOff" type="checkbox" ${item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name) ? "checked" : ""} ${["fid", "fid2"].includes(parseShape(item.shape).name) ? "disabled" : ""}> Truncate edges (troff)${["fid", "fid2"].includes(parseShape(item.shape).name) ? " · automatic" : ""}</label>` : ""}
           <label class="check-field field wide-3"><input data-prop="allowOverlap" type="checkbox" ${item.allowOverlap ? "checked" : ""}> Allow overlap</label>
-          ${item.type === "shaped" && parseShape(item.shape).name === "custom" ? `<div class="field wide-6 custom-shape"><label>Custom envelope · drag points</label><svg id="shapeEditor" viewBox="0 0 480 100" aria-label="Custom shape curve editor"></svg></div>` : ""}
+          ${isShapedElement(item) && parseShape(item.shape).name === "custom" ? `<div class="field wide-6 custom-shape"><label>Custom envelope · drag points</label><svg id="shapeEditor" viewBox="0 0 480 100" aria-label="Custom shape curve editor"></svg></div>` : ""}
         </div>`;
-      if (item.type === "shaped" && parseShape(item.shape).name === "custom") renderShapeEditor(item);
+      if (isShapedElement(item) && parseShape(item.shape).name === "custom") renderShapeEditor(item);
     }
 
     function renderShapeEditor(item) {
@@ -971,10 +1008,10 @@
     }
 
     function overlaps(candidate, ignoreId = candidate.id) {
-      if (candidate.allowOverlap || candidate.type === "marker") return null;
+      if (candidate.allowOverlap || candidate.type === "marker" || isRotorElement(candidate)) return null;
       const a0 = candidate.start, a1 = candidate.start + candidate.duration;
       return state.elements.find(other => {
-        if (other.id === ignoreId || other.channel !== candidate.channel || other.type === "marker") return false;
+        if (other.id === ignoreId || other.channel !== candidate.channel || other.type === "marker" || isRotorElement(other)) return false;
         const b0 = other.start, b1 = other.start + other.duration;
         return a0 < b1 - 1e-8 && a1 > b0 + 1e-8;
       }) || null;
@@ -982,7 +1019,7 @@
 
     function nextOpenStart(item) {
       let start = Math.max(0, snap(item.start));
-      const occupied = state.elements.filter(other => other.channel === item.channel && other.type !== "marker").sort((a, b) => a.start - b.start);
+      const occupied = state.elements.filter(other => other.channel === item.channel && other.type !== "marker" && !isRotorElement(other)).sort((a, b) => a.start - b.start);
       let moved = true;
       while (moved) {
         moved = false;
@@ -998,13 +1035,14 @@
 
     function addElement(kind, channelId = state.activeChannelId, start = null, { magnetic = false } = {}) {
       checkpoint();
-      const type = kind === "shaped" ? "shaped" : kind;
-      const duration = type === "marker" ? 0 : type === "delay" ? 2 : 1.5;
-      const channelElements = state.elements.filter(item => item.channel === channelId);
+      const type = kind;
+      const duration = type === "marker" ? 0 : type === "delay" ? 2 : type === "fid" ? 4 : type === "rotor" ? 1 : 1.5;
+      const channelElements = state.elements.filter(item => item.channel === channelId && !isRotorElement(item));
       const defaultStart = channelElements.reduce((max, item) => Math.max(max, item.start + item.duration), 0);
       const rawStart = start === null ? defaultStart : Math.max(0, start);
       const item = el(type, channelId, snap(rawStart), duration, {
-        shape: type === "shaped" ? "gauss" : "",
+        shape: type === "shaped" ? "gauss" : type === "fid" ? "fid_5_5" : "",
+        amplitude: type === "marker" ? -.2 : type === "delay" ? .45 : .75,
         facecolor: DEFAULT_FACE_COLOR,
         edgecolor: DEFAULT_EDGE_COLOR,
         textcolor: DEFAULT_TEXT_COLOR
@@ -1016,7 +1054,7 @@
       state.activeChannelId = channelId;
       if (item.start + item.duration > state.settings.timeRange) state.settings.timeRange = Math.ceil(item.start + item.duration + 2);
       changed();
-      toast(`${type[0].toUpperCase() + type.slice(1)} added`);
+      toast(`${type === "fid" ? "FID" : type[0].toUpperCase() + type.slice(1)} added`);
     }
 
     function deleteSelected() {
@@ -1063,7 +1101,7 @@
     function pulseToken(item, includeShape = true, colorAliases = {}) {
       const channel = state.channels.find(c => c.id === item.channel);
       const parts = [item.type === "delay" ? `d=${formatNum(item.duration)}` : `p=${formatNum(item.type === "marker" ? 0 : item.duration)}`];
-      if (item.type !== "delay" && item.type !== "marker") parts.push(`pl=${formatNum(item.amplitude)}`);
+      if (item.type !== "delay") parts.push(`pl=${formatNum(item.amplitude)}`);
       parts.push(`f=${formatNum(channel?.value ?? 0)}`, `st=${formatNum(item.start)}`);
       if (item.phase.trim()) parts.push(`ph=${safeToken(item.phase)}`);
       if (item.text.trim()) parts.push(`tx=\`${safeText(item.text)}\``);
@@ -1073,8 +1111,8 @@
       if (item.pdx) parts.push(`pdx=${formatNum(item.pdx)}`);
       if (item.pdy) parts.push(`pdy=${formatNum(item.pdy)}`);
       if (item.pfs !== 14) parts.push(`pfs=${formatNum(item.pfs)}`);
-      if (includeShape && item.type === "shaped" && item.shape) parts.push(`sp=${safeToken(item.shape)}`);
-      if (item.type === "shaped" && (item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name))) parts.push("troff");
+      if (includeShape && isShapedElement(item) && item.shape) parts.push(`sp=${safeToken(item.shape)}`);
+      if (isShapedElement(item) && (item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name))) parts.push("troff");
       if (colorAliases.face && item.type !== "delay") parts.push(`fc_${colorAliases.face}`);
       if (colorAliases.edge && item.type !== "delay") parts.push(`ec_${colorAliases.edge}`);
       return parts.join(" ");
@@ -1082,7 +1120,7 @@
     function safeToken(value) { return String(value).trim().replace(/\s+/g, "_").replace(/[`#]/g, ""); }
     function safeText(value) { return String(value).replace(/`/g, "'").replace(/\r?\n/g, " ").replace(/#/g, "＃"); }
     function pyList(values) { return `[${values.map(value => formatNum(value)).join(", ")}]`; }
-    function isCustomShape(item) { return item.type === "shaped" && ["custom", "sinc"].includes(parseShape(item.shape).name); }
+    function isCustomShape(item) { return isShapedElement(item) && ["custom", "sinc"].includes(parseShape(item.shape).name); }
     function isDefaultFaceColor(value) { return ["#ffffff", "white"].includes(String(value).toLowerCase()); }
     function isDefaultEdgeColor(value) { return ["#000000", "black"].includes(String(value).toLowerCase()); }
 
@@ -1106,7 +1144,7 @@
 
     function findChannelGaps(channelId) {
       const intervals = state.elements
-        .filter(item => item.channel === channelId && item.type !== "marker" && item.duration > 0)
+        .filter(item => item.channel === channelId && item.type !== "marker" && !isRotorElement(item) && item.duration > 0)
         .map(item => ({ start: Math.max(0, item.start), end: Math.max(0, item.start + item.duration) }))
         .sort((a, b) => a.start - b.start || a.end - b.end);
       if (!intervals.length) return [];
@@ -1143,8 +1181,9 @@
       lines.push(`ax.fontsize = ${formatNum(state.settings.fontSize)}`, "");
 
       const channelOrder = new Map(state.channels.map((channel, index) => [channel.id, index]));
+      const rotors = state.elements.filter(isRotorElement).sort((a, b) => a.start - b.start || channelOrder.get(a.channel) - channelOrder.get(b.channel));
       const items = state.channels.flatMap(channel => {
-        const channelItems = state.elements.filter(item => item.channel === channel.id).sort((a, b) => a.start - b.start);
+        const channelItems = state.elements.filter(item => item.channel === channel.id && !isRotorElement(item)).sort((a, b) => a.start - b.start);
         return inferGapDelays(channelItems, channel.id);
       });
       items.sort((a, b) => a.start - b.start || channelOrder.get(a.channel) - channelOrder.get(b.channel));
@@ -1188,7 +1227,13 @@
       lines.push(`ax.set_xlim(0, ${formatNum(state.settings.timeRange)})`);
       lines.push("");
       if (state.settings.title) lines.push(`fig.suptitle(${pythonQuote(state.settings.title)}, fontsize=${formatNum(state.settings.fontSize + 2)})`);
-      lines.push("plt.tight_layout()", 'plt.savefig("pulse_sequence.png", dpi=300)', "plt.show()", "");
+      lines.push("plt.tight_layout()");
+      rotors.forEach(item => {
+        const channel = state.channels.find(candidate => candidate.id === item.channel);
+        const center = item.start + item.duration / 2;
+        lines.push(`ax.rotor(axdims=[${formatNum(center)}, ${formatNum((channel?.value ?? 0) + item.rotorYOffset)}, ${formatNum(item.rotorInsetWidth)}], length=${formatNum(item.duration)})`);
+      });
+      lines.push('plt.savefig("pulse_sequence.png", dpi=300)', "plt.show()", "");
       return lines.join("\n");
     }
 
@@ -1205,7 +1250,7 @@
       tokenized = tokenized.replace(/(^|\s)(#.*)$/gm, (_, lead, comment) => `${lead}<span class="tok-comment">${comment}</span>`);
       tokenized = tokenized.replace(/\b(import|as|from|lambda)\b/g, '<span class="tok-key">$1</span>');
       tokenized = tokenized.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
-      tokenized = tokenized.replace(/\b(pplot|plt|pseq|pulse|draw_channels|set_title|set_xlim|grid|savefig|show|tight_layout|interp|sinc)\b/g, '<span class="tok-fn">$1</span>');
+      tokenized = tokenized.replace(/\b(pplot|plt|pseq|pulse|rotor|draw_channels|set_title|set_xlim|grid|savefig|show|tight_layout|interp|sinc)\b/g, '<span class="tok-fn">$1</span>');
       return tokenized.replace(/\u0000(x+)\u0000/g, (_, marker) => stash[marker.length - 1]);
     }
 
