@@ -1109,7 +1109,6 @@
       const lines = ["import pulseplot as pplot", "import matplotlib.pyplot as plt"];
       if (needsNumpy) lines.push("import numpy as np");
       lines.push("", `fig, ax = pplot.subplots(`, `    figsize=(${formatNum(state.settings.figureWidth)}, ${formatNum(state.settings.figureHeight)}),`, ")");
-      lines.push(`ax.draw_channels(${state.channels.map(channel => formatNum(channel.value)).join(", ")})`);
       lines.push(`ax.fontsize = ${formatNum(state.settings.fontSize)}`, "");
 
       const channelOrder = new Map(state.channels.map((channel, index) => [channel.id, index]));
@@ -1154,8 +1153,8 @@
         lines.push(`ax.pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}${styleArgs.length ? `, ${styleArgs.join(", ")}` : ""})`);
       });
       lines.push("");
+      lines.push(`ax.draw_channels(${state.channels.map(channel => formatNum(channel.value)).join(", ")})`);
       lines.push(`ax.set_xlim(0, ${formatNum(state.settings.timeRange)})`);
-      if (state.settings.grid) lines.push(`ax.grid(axis="x", alpha=0.18)`);
       lines.push("");
       if (state.settings.title) lines.push(`fig.suptitle(${pythonQuote(state.settings.title)}, fontsize=${formatNum(state.settings.fontSize + 2)})`);
       lines.push("plt.tight_layout()", 'plt.savefig("pulse_sequence.png", dpi=300)', "plt.show()", "");
