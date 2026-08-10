@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -112,10 +112,9 @@
 
     .channel-list { display: grid; gap: 7px; }
     .channel-item {
-      display: grid; grid-template-columns: 10px minmax(80px, 1fr) 48px auto; align-items: center; gap: 7px; padding: 8px;
+      display: grid; grid-template-columns: minmax(80px, 1fr) 48px auto; align-items: center; gap: 7px; padding: 8px;
       border: 1px solid var(--border-soft); background: var(--panel-2); border-radius: 9px;
     }
-    .channel-swatch { width: 9px; height: 28px; border-radius: 6px; }
     .channel-item input { width: 100%; padding: 4px 6px; }
 
     .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -303,7 +302,6 @@
           <div class="section-head"><h2 class="section-title">Templates</h2></div>
           <div class="field"><label for="templateSelect">Example sequence</label><select id="templateSelect">
             <option value="spinEcho">Basic 1D Spin-Echo</option>
-            <option value="hsqc">2D HSQC Block</option>
             <option value="cpmas">Cross-Polarization (CP-MAS)</option>
           </select></div>
           <button class="btn" id="loadTemplateBtn" style="width:100%; margin-top:8px">Load template</button>
@@ -379,12 +377,14 @@
 
     const NS = "http://www.w3.org/2000/svg";
     const STORAGE_KEY = "pulseplot-studio-v1";
-    const COLORS = ["#65e5c2", "#7ca7ff", "#f0a6ff", "#ffc66d", "#ff839b", "#73d7ff"];
+    const DEFAULT_FACE_COLOR = "#ffffff";
+    const DEFAULT_EDGE_COLOR = "#000000";
+    const DEFAULT_TEXT_COLOR = "#000000";
     const SHAPE_SPECS = {
       gauss: { label: "Gaussian", params: [{ label: "Center", default: .5, step: .05 }, { label: "Sigma", default: .1667, min: .001, step: .01 }] },
       ramp: { label: "Linear ramp", params: [{ label: "Percent", default: 40, min: -100, max: 100, step: 5 }] },
       tan: { label: "Tangential ramp", params: [{ label: "Percent", default: 50, min: -100, max: 100, step: 5 }, { label: "Curvature", default: .1, min: .001, step: .01 }] },
-      fid: { label: "FID", params: [{ label: "Frequency", default: 10, step: 1 }, { label: "Decay", default: 5, min: 0, step: .5 }] },
+      fid: { label: "FID", params: [{ label: "Frequency", default: 5, step: 1 }, { label: "Decay", default: 5, min: 0, step: .5 }] },
       fid2: { label: "Noisy FID", params: [{ label: "Frequency", default: 10, step: 1 }, { label: "Decay", default: 5, min: 0, step: .5 }] },
       grad: { label: "Gradient", params: [{ label: "Rise exponent", default: 8, min: 1, step: 1 }] },
       sine: { label: "Sine", params: [] },
@@ -406,11 +406,11 @@
     const defaults = {
       settings: {
         title: "Pulse sequence", figureWidth: 9, figureHeight: 4.5, timeRange: 20,
-        snap: .25, channelSpacing: 132, fontSize: 14, grid: true, labels: true, theme: "dark"
+        snap: .25, channelSpacing: 132, fontSize: 14, grid: true, labels: true, theme: "light"
       },
       channels: [
-        { id: "ch-f1", name: "f1 · ¹H", value: 1, color: COLORS[0] },
-        { id: "ch-f2", name: "f2 · ¹³C", value: 2, color: COLORS[1] }
+        { id: "ch-f1", name: "f1 · ¹H", value: 1 },
+        { id: "ch-f2", name: "f2 · ¹³C", value: 2 }
       ],
       elements: [], selectedId: null, activeChannelId: "ch-f1"
     };
@@ -430,65 +430,27 @@
     const templates = {
       spinEcho: {
         settings: { title: "Basic 1D Spin-Echo", timeRange: 24, figureWidth: 9, figureHeight: 2.6 },
-        channels: [{ id: "ch-h", name: "f1 · ¹H", value: 1, color: COLORS[0] }],
+        channels: [{ id: "ch-h", name: "f1 · ¹H", value: 1 }],
         elements: [
-          el("pulse", "ch-h", 1, 1, { amplitude: .8, phase: "1", text: "$90^\\circ$", facecolor: "#65e5c2" }),
+          el("pulse", "ch-h", 1, 1, { amplitude: .8, phase: "1", text: "$90^\\circ$" }),
           el("delay", "ch-h", 2, 7, { text: "$\\tau$" }),
-          el("pulse", "ch-h", 9, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$", facecolor: "#65e5c2" }),
+          el("pulse", "ch-h", 9, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
           el("delay", "ch-h", 11, 7, { text: "$\\tau$" }),
-          el("shaped", "ch-h", 18, 4, { amplitude: .8, shape: "fid_12_4", phase: "rec", text: "acquire", facecolor: "#7ca7ff" })
-        ]
-      },
-      hsqc: {
-        settings: { title: "2D HSQC with reverse INEPT", timeRange: 45, figureWidth: 12, figureHeight: 5.2 },
-        channels: [
-          { id: "ch-h", name: "f1 · ¹H", value: 1, color: COLORS[0] },
-          { id: "ch-n", name: "f2 · ¹⁵N", value: 2, color: COLORS[1] }
-        ],
-        elements: [
-          // Forward INEPT transfer with simultaneous refocusing pulses.
-          el("pulse", "ch-h", 1, 1, { amplitude: .85, phase: "1", text: "$90^\\circ$" }),
-          el("delay", "ch-h", 2, 2, { text: "$\\tau$" }),
-          el("pulse", "ch-h", 4, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
-          el("pulse", "ch-n", 4, 2, { amplitude: .82, phase: "1", text: "$180^\\circ$", facecolor: COLORS[1] }),
-          el("delay", "ch-h", 6, 2, { text: "$\\tau$" }),
-          el("pulse", "ch-h", 8, 1, { amplitude: .82, phase: "_y", text: "$90^\\circ$" }),
-          el("pulse", "ch-n", 8, 1, { amplitude: .76, phase: "1", text: "$90^\\circ$", facecolor: COLORS[1] }),
-          // Indirect evolution with proton refocusing.
-          el("delay", "ch-n", 9, 6, { text: "$t_1$", facecolor: COLORS[1] }),
-          el("pulse", "ch-h", 11, 2, { amplitude: .9, phase: "2", text: "$180^\\circ$" }),
-          // Reverse INEPT transfer followed by refocusing and detection.
-          el("pulse", "ch-h", 18, 1, { amplitude: .85, phase: "1", text: "reverse INEPT" }),
-          el("pulse", "ch-n", 18, 1, { amplitude: .76, phase: "1", text: "$90^\\circ$", facecolor: COLORS[1] }),
-          el("delay", "ch-h", 19, 3, { text: "$\\tau$" }),
-          el("delay", "ch-n", 19, 3, { text: "$\\tau$", facecolor: COLORS[1] }),
-          el("pulse", "ch-h", 22, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
-          el("pulse", "ch-n", 22, 2, { amplitude: .82, phase: "2", text: "$180^\\circ$", facecolor: COLORS[1] }),
-          el("delay", "ch-h", 24, 3, { text: "$\\tau$" }),
-          el("delay", "ch-n", 24, 3, { text: "$\\tau$", facecolor: COLORS[1] }),
-          el("pulse", "ch-h", 27, 1, { amplitude: .82, phase: "_y", text: "$90^\\circ$" }),
-          el("pulse", "ch-n", 27, 1, { amplitude: .76, phase: "1", text: "$90^\\circ$", facecolor: COLORS[1] }),
-          el("delay", "ch-h", 28, 3, { text: "$\\tau$" }),
-          el("pulse", "ch-h", 31, 2, { amplitude: 1, phase: "2", text: "$180^\\circ$" }),
-          el("pulse", "ch-n", 31, 2, { amplitude: .82, phase: "2", text: "$180^\\circ$", facecolor: COLORS[1] }),
-          el("delay", "ch-h", 33, 3, { text: "$\\tau$" }),
-          el("pulse", "ch-h", 36, 1, { amplitude: .82, phase: "1", text: "$90^\\circ$" }),
-          el("pulse", "ch-n", 37, 6, { amplitude: .35, text: "decoupling", facecolor: COLORS[1] }),
-          el("shaped", "ch-h", 37, 6, { amplitude: .8, shape: "fid_20_4", phase: "rec", text: "$t_2$" })
+          el("shaped", "ch-h", 18, 4, { amplitude: .8, shape: "fid_5_5", phase: "rec", text: "acquire" })
         ]
       },
       cpmas: {
         settings: { title: "Cross-Polarization (CP-MAS)", timeRange: 20, figureWidth: 10, figureHeight: 4.5 },
         channels: [
-          { id: "ch-h", name: "f1 · ¹H", value: 1, color: COLORS[0] },
-          { id: "ch-c", name: "f2 · ¹³C", value: 2, color: COLORS[1] }
+          { id: "ch-h", name: "f1 · ¹H", value: 1 },
+          { id: "ch-c", name: "f2 · ¹³C", value: 2 }
         ],
         elements: [
           el("pulse", "ch-h", 1, 1, { amplitude: .85, phase: "1", text: "$90^\\circ$" }),
           el("shaped", "ch-h", 2, 7, { amplitude: .8, shape: "ramp_-30", phase: "_x", text: "CP", allowOverlap: true }),
-          el("pulse", "ch-c", 2, 7, { amplitude: .62, phase: "2", text: "CP", allowOverlap: true, facecolor: COLORS[1] }),
+          el("pulse", "ch-c", 2, 7, { amplitude: .62, phase: "2", text: "CP", allowOverlap: true }),
           el("pulse", "ch-h", 9, 8, { amplitude: .42, text: "decoupling", allowOverlap: true }),
-          el("shaped", "ch-c", 9, 8, { amplitude: .72, shape: "fid_18_4", phase: "rec", text: "acquire", allowOverlap: true, facecolor: COLORS[1] })
+          el("shaped", "ch-c", 9, 8, { amplitude: .72, shape: "fid_5_5", phase: "rec", text: "acquire", allowOverlap: true })
         ]
       }
     };
@@ -497,7 +459,7 @@
       return {
         id: uid("el"), type, channel, start, duration, amplitude: type === "delay" ? .45 : .75,
         phase: "", text: "", shape: type === "shaped" ? "gauss" : "",
-        facecolor: "#65e5c2", edgecolor: "#000000",
+        facecolor: DEFAULT_FACE_COLOR, edgecolor: DEFAULT_EDGE_COLOR, textcolor: DEFAULT_TEXT_COLOR,
         truncateOff: false, tdx: 0, tdy: 0, tfs: 14, pdx: 0, pdy: 0, pfs: 14, allowOverlap: true,
         customPoints: [[0, 0], [.2, .3], [.5, 1], [.8, .3], [1, 0]], ...extra
       };
@@ -508,15 +470,16 @@
       if (!candidate || typeof candidate !== "object") return result;
       result.settings = { ...result.settings, ...(candidate.settings || {}) };
       result.channels = Array.isArray(candidate.channels) && candidate.channels.length
-        ? candidate.channels.map((channel, i) => ({ id: channel.id || uid("ch"), name: channel.name || `f${i + 1}`, value: Number(channel.value ?? i + 1), color: channel.color || COLORS[i % COLORS.length] }))
+        ? candidate.channels.map((channel, i) => ({ id: channel.id || uid("ch"), name: channel.name || `f${i + 1}`, value: Number(channel.value ?? i + 1) }))
         : result.channels;
       const channelIds = new Set(result.channels.map(channel => channel.id));
       result.elements = Array.isArray(candidate.elements) ? candidate.elements
         .filter(item => item && channelIds.has(item.channel))
         .map(item => {
           const normalized = { ...el(item.type || "pulse", item.channel, Number(item.start) || 0, Number(item.duration) || 0), ...item, id: item.id || uid("el") };
-          normalized.facecolor = item.facecolor || item.color || result.channels.find(channel => channel.id === item.channel)?.color || COLORS[0];
-          normalized.edgecolor = item.edgecolor || "#000000";
+          normalized.facecolor = item.facecolor || item.color || DEFAULT_FACE_COLOR;
+          normalized.edgecolor = item.edgecolor || DEFAULT_EDGE_COLOR;
+          normalized.textcolor = item.textcolor || DEFAULT_TEXT_COLOR;
           delete normalized.color;
           return normalized;
         }) : [];
@@ -533,7 +496,7 @@
         console.warn("Could not restore saved project", error);
         state = deepCopy(defaults);
       }
-      document.documentElement.dataset.theme = state.settings.theme || "dark";
+      document.documentElement.dataset.theme = state.settings.theme || "light";
     }
 
     function snapshot() { return JSON.stringify({ settings: state.settings, channels: state.channels, elements: state.elements, selectedId: state.selectedId, activeChannelId: state.activeChannelId }); }
@@ -785,11 +748,11 @@
       state.channels.forEach(channel => {
         const y = channelY(channel.id, m);
         const active = channel.id === state.activeChannelId;
-        if (!clean && active) svg.append(svgEl("rect", { x: 0, y: y - state.settings.channelSpacing / 2 + 3, width: m.width, height: state.settings.channelSpacing - 6, fill: channel.color, opacity: .035 }));
+        if (!clean && active) svg.append(svgEl("rect", { x: 0, y: y - state.settings.channelSpacing / 2 + 3, width: m.width, height: state.settings.channelSpacing - 6, fill: border, opacity: .12 }));
         svg.append(svgEl("line", { x1: m.left, y1: y, x2: m.width - m.right, y2: y, stroke: clean ? "#667085" : border, "stroke-width": 1.3 }));
         if (state.settings.labels) {
-          svg.append(svgEl("rect", { x: 13, y: y - 16, width: 74, height: 32, rx: 8, fill: clean ? "#f4f6f8" : channel.color, opacity: clean ? 1 : .13, stroke: clean ? "#d7dde6" : channel.color }));
-          svg.append(svgEl("circle", { cx: 24, cy: y, r: 4, fill: channel.color }));
+          svg.append(svgEl("rect", { x: 13, y: y - 16, width: 74, height: 32, rx: 8, fill: clean ? "#f4f6f8" : "transparent", stroke: clean ? "#d7dde6" : border }));
+          svg.append(svgEl("circle", { cx: 24, cy: y, r: 4, fill: clean ? "#667085" : muted }));
           svg.append(svgEl("text", { x: 34, y: y + 4, fill: textColor, "font-size": 11, "font-family": "system-ui, sans-serif" }, channel.name));
         }
       });
@@ -830,10 +793,11 @@
         }
 
         const fontSize = item.tfs || state.settings.fontSize;
-        if (item.text) group.append(svgEl("text", { x: x + w / 2 + item.tdx * m.xScale, y: y - h / 2 - item.tdy * 18, fill: textColor, "font-size": fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, displayMath(item.text)));
+        const elementTextColor = item.type === "pulse" || item.type === "shaped" ? item.textcolor : textColor;
+        if (item.text) group.append(svgEl("text", { x: x + w / 2 + item.tdx * m.xScale, y: y - h / 2 - item.tdy * 18, fill: elementTextColor, "font-size": fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, displayMath(item.text)));
         if (item.phase) {
           const phaseText = item.phase.startsWith("_") ? item.phase.slice(1) : `φ${item.phase}`;
-          group.append(svgEl("text", { x: x + w / 2 + item.pdx * m.xScale, y: y - h - 9 - item.pdy * 18, fill: textColor, "font-size": item.pfs || state.settings.fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, phaseText));
+          group.append(svgEl("text", { x: x + w / 2 + item.pdx * m.xScale, y: y - h - 9 - item.pdy * 18, fill: elementTextColor, "font-size": item.pfs || state.settings.fontSize, "font-family": "system-ui, sans-serif", "text-anchor": "middle", "pointer-events": "none" }, phaseText));
         }
 
         if (isSelected) {
@@ -884,7 +848,6 @@
       if (list.contains(document.activeElement)) return;
       list.innerHTML = state.channels.map((channel, index) => `
         <div class="channel-item" data-channel-id="${esc(channel.id)}">
-          <span class="channel-swatch" style="background:${esc(channel.color)}"></span>
           <input aria-label="Channel ${index + 1} name" data-channel-name value="${esc(channel.name)}">
           <input aria-label="Channel ${index + 1} f value" data-channel-value type="number" step="1" value="${esc(channel.value)}" title="pulseplot f value">
           <button class="btn tiny danger" data-remove-channel title="Remove channel" ${state.channels.length === 1 ? "disabled" : ""}>×</button>
@@ -936,6 +899,7 @@
           <div class="field"><label title="Phase (ph)">Phase · ph</label><input data-prop="phase" value="${esc(item.phase)}" placeholder="1 / rec"></div>
           ${item.type !== "delay" ? `<div class="field"><label title="Face color (fc)">Face · fc</label><input data-prop="facecolor" type="color" value="${esc(item.facecolor)}"></div>` : `<div class="field"><label>Face · fc</label><input value="—" disabled></div>`}
           ${item.type !== "delay" ? `<div class="field"><label title="Edge color (ec)">Edge · ec</label><input data-prop="edgecolor" type="color" value="${esc(item.edgecolor)}"></div>` : `<div class="field"><label>Edge · ec</label><input value="—" disabled></div>`}
+          ${isPulse ? `<div class="field"><label title="Annotation and phase text color">Text color</label><input data-prop="textcolor" type="color" value="${esc(item.textcolor)}"></div>` : `<div class="field"><label>Text color</label><input value="—" disabled></div>`}
           <div class="field wide-4"><label title="Annotation (tx); LaTeX accepted">Annotation · tx</label><input data-prop="text" value="${esc(item.text)}" placeholder="$\\tau$, $90^\\circ$, CP"></div>
           <div class="field"><label title="Text x offset (tdx)">Text x</label><input data-prop="tdx" type="number" step="0.1" value="${item.tdx}"></div>
           <div class="field"><label title="Text y offset (tdy)">Text y</label><input data-prop="tdy" type="number" step="0.1" value="${item.tdy}"></div>
@@ -1002,8 +966,9 @@
       const rawStart = start === null ? defaultStart : Math.max(0, start);
       const item = el(type, channelId, snap(rawStart), duration, {
         shape: type === "shaped" ? "gauss" : "",
-        facecolor: state.channels.find(channel => channel.id === channelId)?.color || COLORS[0],
-        edgecolor: "#000000"
+        facecolor: DEFAULT_FACE_COLOR,
+        edgecolor: DEFAULT_EDGE_COLOR,
+        textcolor: DEFAULT_TEXT_COLOR
       });
       if (magnetic) item.start = magneticStart(item, rawStart, canvasMetrics()).value;
       if (overlaps(item)) item.start = nextOpenStart(item);
@@ -1056,7 +1021,7 @@
       toast(`${clone.type[0].toUpperCase() + clone.type.slice(1)} pasted`);
     }
 
-    function pulseToken(item, includeShape = true, colorAlias = "") {
+    function pulseToken(item, includeShape = true, colorAliases = {}) {
       const channel = state.channels.find(c => c.id === item.channel);
       const parts = [item.type === "delay" ? `d=${formatNum(item.duration)}` : `p=${formatNum(item.type === "marker" ? 0 : item.duration)}`];
       if (item.type !== "delay" && item.type !== "marker") parts.push(`pl=${formatNum(item.amplitude)}`);
@@ -1071,13 +1036,16 @@
       if (item.pfs !== 14) parts.push(`pfs=${formatNum(item.pfs)}`);
       if (includeShape && item.type === "shaped" && item.shape) parts.push(`sp=${safeToken(item.shape)}`);
       if (item.type === "shaped" && (item.truncateOff || ["fid", "fid2"].includes(parseShape(item.shape).name))) parts.push("troff");
-      if (colorAlias && item.type !== "delay") parts.push(`fc_${colorAlias}`, `ec_${colorAlias}`);
+      if (colorAliases.face && item.type !== "delay") parts.push(`fc_${colorAliases.face}`);
+      if (colorAliases.edge && item.type !== "delay") parts.push(`ec_${colorAliases.edge}`);
       return parts.join(" ");
     }
     function safeToken(value) { return String(value).trim().replace(/\s+/g, "_").replace(/[`#]/g, ""); }
     function safeText(value) { return String(value).replace(/`/g, "'").replace(/\r?\n/g, " ").replace(/#/g, "＃"); }
     function pyList(values) { return `[${values.map(value => formatNum(value)).join(", ")}]`; }
     function isCustomShape(item) { return item.type === "shaped" && ["custom", "sinc"].includes(parseShape(item.shape).name); }
+    function isDefaultFaceColor(value) { return ["#ffffff", "white"].includes(String(value).toLowerCase()); }
+    function isDefaultEdgeColor(value) { return ["#000000", "black"].includes(String(value).toLowerCase()); }
 
     function inferGapDelays(items, channelId) {
       const result = [];
@@ -1141,21 +1109,23 @@
         const custom = items.filter(isCustomShape);
         const colorAliases = new Map();
         standard.filter(item => item.type !== "delay").forEach((item, colorIndex) => {
-          const alias = `color_${index}_${colorIndex}`;
-          colorAliases.set(item.id, alias);
+          const aliases = {};
+          if (!isDefaultFaceColor(item.facecolor)) aliases.face = `face_${index}_${colorIndex}`;
+          if (!isDefaultEdgeColor(item.edgecolor)) aliases.edge = `edge_${index}_${colorIndex}`;
+          if (aliases.face || aliases.edge) colorAliases.set(item.id, aliases);
         });
         lines.push(`# Channel ${index + 1}: ${channel.name.replace(/\n/g, " ")}`);
         lines.push(`axes[${index}].draw_channels(${formatNum(channel.value)})`);
         lines.push(`axes[${index}].set_title(${pythonQuote(channel.name)}, fontsize=${formatNum(state.settings.fontSize)})`);
         lines.push(`axes[${index}].fontsize = ${formatNum(state.settings.fontSize)}`);
         standard.filter(item => colorAliases.has(item.id)).forEach(item => {
-          const alias = colorAliases.get(item.id);
-          lines.push(`axes[${index}].params["fc_${alias}"] = ${pythonQuote(item.facecolor)}`);
-          lines.push(`axes[${index}].params["ec_${alias}"] = ${pythonQuote(item.edgecolor)}`);
+          const aliases = colorAliases.get(item.id);
+          if (aliases.face) lines.push(`axes[${index}].params["fc_${aliases.face}"] = ${pythonQuote(item.facecolor)}`);
+          if (aliases.edge) lines.push(`axes[${index}].params["ec_${aliases.edge}"] = ${pythonQuote(item.edgecolor)}`);
         });
         if (standard.length) {
           lines.push(`axes[${index}].pseq(r"""`);
-          standard.forEach(item => lines.push(pulseToken(item, true, colorAliases.get(item.id) || "")));
+          standard.forEach(item => lines.push(pulseToken(item, true, colorAliases.get(item.id) || {})));
           lines.push('""")');
         }
         custom.forEach(item => {
@@ -1166,7 +1136,10 @@
             const points = [...item.customPoints].sort((a, b) => a[0] - b[0]);
             shape = `lambda x: np.interp(x, ${pyList(points.map(point => point[0]))}, ${pyList(points.map(point => point[1]))})`;
           }
-          lines.push(`axes[${index}].pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}, facecolor=${pythonQuote(item.facecolor)}, edgecolor=${pythonQuote(item.edgecolor)})`);
+          const styleArgs = [];
+          if (!isDefaultFaceColor(item.facecolor)) styleArgs.push(`facecolor=${pythonQuote(item.facecolor)}`);
+          if (!isDefaultEdgeColor(item.edgecolor)) styleArgs.push(`edgecolor=${pythonQuote(item.edgecolor)}`);
+          lines.push(`axes[${index}].pulse(r"${pythonRawString(pulseToken(item, false))}", shape=${shape}${styleArgs.length ? `, ${styleArgs.join(", ")}` : ""})`);
         });
         lines.push(`axes[${index}].set_xlim(0, ${formatNum(state.settings.timeRange)})`);
         if (state.settings.grid) lines.push(`axes[${index}].grid(axis="x", alpha=0.18)`);
@@ -1369,7 +1342,7 @@
       $("#addChannelBtn").addEventListener("click", () => {
         checkpoint();
         const number = state.channels.length + 1;
-        const channel = { id: uid("ch"), name: `f${number}`, value: number, color: COLORS[(number - 1) % COLORS.length] };
+        const channel = { id: uid("ch"), name: `f${number}`, value: number };
         state.channels.push(channel); state.activeChannelId = channel.id; changed();
       });
 
