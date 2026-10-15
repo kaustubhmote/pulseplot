@@ -1,4 +1,7 @@
 # images
+node_modules/
+docs/playwright-report/
+docs/test-results/
 tests/*png
 tests/*.gif
 

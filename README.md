@@ -1,5 +1,9 @@
 # pulseplot
 
+The browser-based sequence builder lives in [`docs/index.html`](docs/index.html).
+For source files, local preview, builds, and tests, see the
+[website development guide](docs/README.md).
+
 Tired of opening Inkspace or (*gasp*) Illustrator to make
 simple pulse-timing diagrams? Want to combine spectra and 
 pulse-timing diagrams on a single plot without having to manually

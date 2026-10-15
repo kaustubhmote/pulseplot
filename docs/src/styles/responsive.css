@@ -1,0 +1,28 @@
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: 240px minmax(500px, 1fr) 390px; }
+  .inspector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 960px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100%; }
+  .workspace { grid-template-columns: 230px minmax(500px, 1fr); }
+  .inspector-panel { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border-soft); min-height: 300px; }
+  .inspector-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .topbar { padding: 0 10px; }
+  .brand { min-width: 0; }
+  .brand small, .status-pill, .top-actions .text-action { display: none; }
+  .workspace { display: block; }
+  .sidebar { border-right: 0; }
+  .section { padding: 12px; }
+  .center { padding: 10px; }
+  .field-grid { grid-template-columns: 1fr; }
+  .field.span-2 { grid-column: auto; }
+  .check-field { padding-top: 0; }
+  .inspector-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inspector-grid .field.wide-6 { grid-column: 1 / -1; }
+  .code-body { grid-template-columns: 1fr; }
+  .output-actions { border-left: 0; border-top: 1px solid var(--border-soft); }
+  .output-action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
