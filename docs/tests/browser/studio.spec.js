@@ -87,9 +87,3 @@ for (const [name, url] of Object.entries(pages)) {
     });
   });
 }
-
-test("the original root entry point redirects to the generated document", async ({ page }) => {
-  await page.goto(new URL("../../../index.html", import.meta.url).href);
-  await page.waitForURL("**/docs/index.html");
-  await expect(page.locator("#channelList input")).toHaveCount(2);
-});

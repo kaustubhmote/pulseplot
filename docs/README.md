@@ -2,7 +2,7 @@
 
 Edit the files in `docs/src`. The build produces `docs/index.html`, a standalone
 page with inline JavaScript and CSS. You can open that file directly or serve
-the `docs` directory through GitHub Pages. The root `index.html` redirects to it.
+the `docs` directory through GitHub Pages.
 
 ## Preview changes
 
