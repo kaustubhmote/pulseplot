@@ -2,10 +2,7 @@
 
 [![Try Online](https://img.shields.io/badge/Generate%20Online%20Using%20A%20GUI-blue)](https://kaustubhmote.github.io/pulseplot/)
 
-Tired of opening Inkspace or (*gasp*) Illustrator to make
-simple pulse-timing diagrams? Want to combine spectra and 
-pulse-timing diagrams on a single plot without having to manually
-piece them together? Want an easy way to make shaped pulses, hatches, indicates phases, FIDs, and animation? How about something like this:
+Tired of opening Inkspace or (*gasp*) Illustrator to make simple pulse-timing diagrams? Want to combine spectra and pulse-timing diagrams on a single plot without having to manually piece them together? Want an easy way to make shaped pulses, hatches, indicates phases, FIDs, and animation? How about something like this:
 
 
 ```python

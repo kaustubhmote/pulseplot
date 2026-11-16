@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <meta name="description" content="A visual pulse sequence builder and Python code generator for pulseplot.">
+  <title>pulseplot</title>
+  <link rel="stylesheet" href="./styles/studio.css">
+  <link rel="stylesheet" href="./styles/responsive.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">p</div>
+        <div><strong>pulseplot</strong><small>visual sequence builder</small></div>
+      </div>
+      <div class="status-pill"><span class="status-dot"></span><span id="saveStatus">Saved locally</span></div>
+      <div class="top-actions">
+        <button class="btn icon" id="undoBtn" title="Undo (Ctrl/Cmd+Z)" aria-label="Undo">↶</button>
+        <button class="btn icon" id="redoBtn" title="Redo (Ctrl/Cmd+Shift+Z)" aria-label="Redo">↷</button>
+        <button class="btn text-action" id="importBtn">Import JSON</button>
+        <button class="btn text-action" id="exportJsonBtn">Save project</button>
+        <button class="btn icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="Builder controls">
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Channels</h2><button class="btn tiny" id="addChannelBtn">+ Add</button></div>
+          <div class="channel-list" id="channelList"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Elements</h2></div>
+          <div class="palette">
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="pulse" role="button">
+              <div class="palette-icon"><span class="pulse-icon"></span></div><strong>Hard pulse</strong><small>Rectangular</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="shaped" role="button">
+              <div class="palette-icon"><svg class="shape-icon" viewBox="0 0 52 28" aria-hidden="true"><path d="M1 27 C10 27 12 2 26 2 S42 27 51 27" fill="none" stroke="currentColor" stroke-width="2"/></svg></div><strong>Shaped pulse</strong><small>Gaussian & more</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="delay" role="button">
+              <div class="palette-icon"><span class="delay-icon"></span></div><strong>Delay</strong><small>Timed gap</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="marker" role="button">
+              <div class="palette-icon"><span class="marker-icon"></span></div><strong>Marker</strong><small>Zero length</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="fid" role="button">
+              <div class="palette-icon"><svg class="fid-icon" viewBox="0 0 52 28" aria-hidden="true"><path d="M1 3 C4 27 8 27 11 3 C14 22 18 22 21 5 C24 18 28 18 31 8 C34 15 38 15 41 10 C44 13 48 13 51 11" fill="none" stroke="currentColor" stroke-width="2"/></svg></div><strong>FID</strong><small>Acquisition signal</small>
+            </div>
+            <div class="palette-item" draggable="true" tabindex="0" data-kind="rotor" role="button">
+              <div class="palette-icon"><span class="rotor-icon"></span></div><strong>Rotor</strong><small>MAS rotor overlay</small>
+            </div>
+          </div>
+          <p class="help">Drag onto the canvas, or click to append to the active channel.</p>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><h2 class="section-title">Templates</h2></div>
+          <div class="field"><label for="templateSelect">Example sequence</label><select id="templateSelect">
+            <option value="hsqcInept">HSQC-INEPT</option>
+            <option value="crossPolarization">Cross Polarization</option>
+            <option value="hsqcCp">HSQC-CP</option>
+            <option value="spinEcho">Spin Echo</option>
+          </select></div>
+          <button class="btn" id="loadTemplateBtn" style="width:100%; margin-top:8px">Load template</button>
+        </section>
+
+      </aside>
+
+      <section class="center" aria-label="Sequence workspace">
+        <div class="canvas-card">
+          <div class="canvas-toolbar">
+            <button class="btn tiny" id="fitBtn">Fit timeline</button>
+            <button class="btn tiny" id="fillDelaysBtn" title="Add explicit delays to every empty interval">Fill delays</button>
+            <button class="btn tiny" id="clearBtn">Clear</button>
+            <span class="toolbar-divider"></span>
+            <span class="help"><span class="kbd">Ctrl/Cmd-click</span> multi-select · <span class="kbd">Shift</span> grid only · <span class="kbd">Alt-drag</span> copy</span>
+            <span class="zoom-label" id="timelineSummary"></span>
+          </div>
+          <div class="canvas-shell" id="canvasShell">
+            <svg id="sequenceCanvas" role="application" aria-label="Interactive pulse sequence timeline"></svg>
+            <div class="empty-hint" id="emptyHint"><div>Drop an element onto a channel</div></div>
+          </div>
+        </div>
+
+        <section class="plot-settings-card" aria-label="Settings">
+          <h2 class="section-title">Settings</h2>
+          <div class="plot-settings-inline" id="settingsForm">
+            <label class="check-field"><input id="gridToggle" data-setting="grid" type="checkbox"> Grid</label>
+            <label class="check-field"><input id="labelsToggle" data-setting="labels" type="checkbox"> Labels</label>
+            <div class="field title-setting"><label for="plotTitle">Title</label><input id="plotTitle" data-setting="title" value="Pulse sequence"></div>
+            <div class="field"><label for="figureWidth" title="Figure width (inches)">Width (in)</label><input id="figureWidth" data-setting="figureWidth" type="number" min="3" max="20" step="0.5"></div>
+            <div class="field"><label for="figureHeight" title="Figure height (inches)">Height (in)</label><input id="figureHeight" data-setting="figureHeight" type="number" min="1" max="20" step="0.5"></div>
+            <div class="field"><label for="timeRange" title="Timeline maximum">Timeline max</label><input id="timeRange" data-setting="timeRange" type="number" min="1" step="1"></div>
+            <div class="field"><label for="snapSize" title="Snap increment">Snap</label><input id="snapSize" data-setting="snap" type="number" min="0.01" step="0.05"></div>
+            <div class="field"><label for="channelSpacing" title="Channel spacing">Channel gap</label><input id="channelSpacing" data-setting="channelSpacing" type="number" min="90" max="220" step="5"></div>
+            <div class="field"><label for="fontSize">Font</label><input id="fontSize" data-setting="fontSize" type="number" min="8" max="28" step="1"></div>
+          </div>
+        </section>
+
+        <section class="code-card" id="codeCard" aria-label="Generated Python output">
+          <div class="output-head">
+            <div class="output-title"><h2>Live Python</h2><p>Generated for the current pulseplot API</p></div>
+          </div>
+          <div class="code-body">
+            <div class="code-pane">
+              <div class="code-wrap"><pre><code id="codeOutput"></code></pre></div>
+              <div class="validation" id="validationMessage">Sequence is valid.</div>
+            </div>
+            <div class="output-actions">
+              <div class="output-action-grid">
+                <button class="btn primary action-tile" id="copyCodeBtn" data-icon="⧉">Copy code</button>
+                <button class="btn action-tile" id="downloadCodeBtn" data-icon="PY">Download .py</button>
+                <button class="btn action-tile" id="exportSvgBtn" data-icon="SVG">Export SVG</button>
+                <button class="btn action-tile" id="exportPngBtn" data-icon="PNG">Export PNG</button>
+                <button class="btn action-tile" id="codeToggleBtn" data-icon="↕" aria-expanded="true">Collapse</button>
+              </div>
+              <p class="help">PNG export uses the selected figure dimensions at 300 pixels per inch.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="inspector-panel" aria-label="Element inspector">
+        <div id="inspector">
+          <div class="inspector-empty">Select an element to edit its timing, appearance, annotation, and shape.</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <input class="sr-only" id="projectFile" type="file" accept="application/json,.json">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
